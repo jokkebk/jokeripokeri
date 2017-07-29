@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
     h[0] = card;
     if(card != 52) hvals.erase(find(hvals.begin(), hvals.end(), card/4));
 
-    map<int,int> S;//ums
+    map<int,int> S;
     map<int,string> prevH;
 
     int I=0, N=0;
@@ -81,18 +81,12 @@ int main(int argc, char *argv[]) {
         for(int s=1; s<0xFF; s++) { // suits except flush (all 0)
             for(int i=0; i<4; i++) h[i+1] = hvals[hv[i]]*4 + ((s>>i*2)&3);
             int en = enum_hand1(h);
-            string hStr = hand_string(h);
-            //if(I++%10) continue;
-            //if(en != 11782) continue;
             if(S.count(en)) continue; // already calculated
-            //S[en]++;
-            //continue;
 
             vector<int> left(53);
             iota(left.begin(), left.end(), 0);
             for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
 
-            //map<int,int> C;
             int ci[4] = {0, 1, 2, 3};
             int score = 0;
             do {
@@ -100,20 +94,12 @@ int main(int argc, char *argv[]) {
                 score += win(h);
             } while(next_combi(ci, 4, left.size()-1));
 
-            //if(S.count(en) == 0) {
-                S[en] = score;
-                prevH[en] = hStr;
-            //S[en] = score;
-            //for(auto p : C) {
-            //    cout << p.first << "*" << p.second << endl;
-            //    S[p.first].insert(p.second);
-            //}
+            S[en] = score;
         }
     } while(next_combi(hv, 4, hvals.size()-1)); // no joker
 
-    return 0;
-
-    I=0, N=0;
+    srand(time(NULL));
+    I=rand()%1000, N=0;
 
     for(int i=0; i<4; i++) hv[i] = i;
 

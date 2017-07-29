@@ -14,5 +14,8 @@ jokeri.exe: jokeri.o util.o
 jokgen.exe: jokgen.o util.o
 	$(CC) $(CFLAGS) $^ -o $@
 
+%.exe: %.o util.o
+	$(CC) $(CFLAGS) $^ -o $@
+
 %.o: %.cc
 	$(CC) $(CFLAGS) -c $< -o $@

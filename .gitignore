@@ -1,2 +1,4 @@
-*.txt 
-jokeri.dat 
+jokeri.dat
+*.txt
+*.o
+*.exe
