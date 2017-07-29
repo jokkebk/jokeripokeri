@@ -19,6 +19,7 @@ void inline sort5(int *a) {
 #define NUM_HAND(h) ((h[4]<<24)+(h[3]<<18)+(h[2]<<12)+(h[1]<<6)+h[0])
 
 bool input_hand(int *h);
+void string_hand(int *h, std::string &str);
 std::string hand_string(int *h, int n=5, int highlight=0);
 void print_hand(int *h, int n=5, int highlight=0);
 

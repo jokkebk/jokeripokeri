@@ -18,6 +18,12 @@ bool input_hand(int *h) {
     getline(cin, str);
     if(!str.size()) return false;
 
+    string_hand(h, str);
+
+    return true;
+}
+
+void string_hand(int *h, string &str) {
     for(int i=0; i<5; i++) {
         if(str[i*3]=='?') h[i] = 52;
         else {
@@ -27,8 +33,6 @@ bool input_hand(int *h) {
             h[i] = v*4 + s;
         }
     }
-
-    return true;
 }
 
 string hand_string(int *h, int n, int highlight) {
