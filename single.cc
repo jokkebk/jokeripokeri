@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <iomanip>
 #include <vector>
 #include <map>
@@ -18,123 +20,111 @@ using namespace std;
 
 // Calculate a characteristic numbering of a hand with no duplicates or joker
 int enum_hand1(int *h) {
-    int r = 0, s = 0;
+    int r = 0;
     for(int i=1; i<5; i++) {
-        r |= 1 << h[i]/4 + 4;
-        if((h[i]&3) == (h[0]&3))
-            r |= 1 << i-1;
-    //    if(h[i] < h[0])
-    //        r |= 1 << h[i]/4 + 4;
-    //    else
-    //        r |= 1 << h[i]/4 + 3;
-    //    if((h[i]&3) == (h[0]&3)) r |= 1 << i-1;
+        r |= 1 << h[i]/4;
+        if((h[i]&3) != (h[0]&3)) r |= 1 << i-1 + 13;
     }
     return r;
 }
 
-// h[1] .. h[4] should be ordered in order for enum to work
-//int enum_hand1(int *h) {
-//    int vless = 0, vmore = 0, suit = 0;
-//
-//    for(int i=1; i<5; i++) {
-//        int rel;
-//
-//        if(h[0]/4 == 12) { // Ace
-//            if(h[i]/4 <= 3) // 2,3,4,5
-//                vmore |= 1 << h[i];
-//            else if(h[i] >= 8) // T,J,Q,K
-//                vless |= 1 << 11-h[i];
-//        } else { // Non-ace
-//            if(h[i] < h[0])
-//                vless |= 1 << (h[0]-h[i])/4-1;
-//            else
-//                vmore |= 1 << (h[i]-h[0])/4-1;
-//            if(h[i]/4 == 12) // repeat ace on the bottom
-//                vless |= 1 << h[0]/4;
-//        }
-//        if((h[i]&3) == (h[0]&3)) suit |= 1 << i-1;
-//        //cout << bitset<8>(vless) << " " << bitset<8>(vmore) << " " << bitset<4>(suit) << endl;
-//    }
-//    //cout << bitset<8>(vless) << " " << bitset<8>(vmore) << " " << bitset<4>(suit) << endl;
-//    return ((vless&15)<<8) + ((vmore&15)<<4) + suit;
-//}
-
 int main(int argc, char *argv[]) {
-    int h[5], card = 3*4;
-    int hv[4] = {0, 1, 2, 3};
-
-    vector<int> hvals(13);
-    iota(hvals.begin(), hvals.end(), 0);
-
-    h[0] = card;
-    if(card != 52) hvals.erase(find(hvals.begin(), hvals.end(), card/4));
-
     map<int,int> S;
     map<int,string> prevH;
 
-    int I=0, N=0;
+    int h[5], cardV = 3; // 13 is joker
 
-    do { // values other than 'card'
-        for(int i=0; i<4; i++) h[i+1] = hvals[hv[i]]*4;
-        if(win(h)==30) continue; // skip straights
+    if(argc>1) cardV = atoi(argv[1]);
 
-        for(int s=1; s<0xFF; s++) { // suits except flush (all 0)
-            for(int i=0; i<4; i++) h[i+1] = hvals[hv[i]]*4 + ((s>>i*2)&3);
-            int en = enum_hand1(h);
-            if(S.count(en)) continue; // already calculated
+    cout << "Calculating single precalculations for " << cardV << endl;
 
-            vector<int> left(53);
-            iota(left.begin(), left.end(), 0);
-            for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
+    h[0] = cardV==13 ? 52 : cardV*4;
 
-            int ci[4] = {0, 1, 2, 3};
-            int score = 0;
-            do {
-                for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
-                score += win(h);
-            } while(next_combi(ci, 4, left.size()-1));
+    ostringstream ss;
+    ss << "single" << cardV << ".dat";
 
+    if(ifstream(ss.str())) {
+        ifstream cache(ss.str());
+        cout << "Found cache file " << ss.str() << endl;
+        while(cache.good()) {
+            int en, score;
+            cache >> en >> score;
             S[en] = score;
         }
-    } while(next_combi(hv, 4, hvals.size()-1)); // no joker
+    } else {
+        for(int cards=15; cards<(1<<13); cards++) {
+            if(__builtin_popcount(cards) != 4) continue; // 4 cards
+            if(cards & (1<<cardV)) continue; // no selected card
+            for(int suit=1; suit<16; suit++) { // skip flush
+                for(int i=0, c=1; i<13; i++) // construct hand
+                    if(cards & (1<<i)) {
+                        h[c] = i*4 + ((suit>>(c-1))&1);
+                        c++; // thanks C
+                    }
+
+                if(win(h)) continue; // skip straights
+
+                int en = enum_hand1(h);
+
+                vector<int> left(53);
+                iota(left.begin(), left.end(), 0);
+                for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
+
+                int ci[4] = {0, 1, 2, 3};
+                int score = 0;
+                do {
+                    for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
+                    score += win(h);
+                } while(next_combi(ci, 4, left.size()-1));
+                S[en] = score;
+            }
+        }
+
+        cout << "Writing cache file!" << endl;
+        ofstream wCache(ss.str());
+        for(auto p : S) wCache << p.first << " " << p.second << endl;
+        wCache.close();
+    }
+
+    cout << "Running a simple test suite..." << endl;
 
     srand(time(NULL));
-    I=rand()%1000, N=0;
+    int I=rand()%100, N=0;
 
-    for(int i=0; i<4; i++) hv[i] = i;
+    int hi[4] = {0, 1, 2, 3};
+    vector<int> hv(52); // no joker in test
+    iota(hv.begin(), hv.end(), 0);
+    hv.erase(find(hv.begin(), hv.end(), h[0]));
 
+    int count=0;
     do { // values other than 'card'
-        for(int i=0; i<4; i++) h[i+1] = hvals[hv[i]]*4;
-        if(win(h)==30) continue; // skip straights
+        count++;
+        for(int i=0; i<4; i++) h[i+1] = hv[hi[i]];
+        int en = enum_hand1(h);
+        if(!S.count(en)) continue; // Let's trust the enumeration this far
 
-        for(int s=1; s<0xFF; s++) { // suits except flush (all 0)
-            for(int i=0; i<4; i++) h[i+1] = hvals[hv[i]]*4 + ((s>>i*2)&3);
-            string hStr = hand_string(h);
-            int en = enum_hand1(h);
-            if(I++%1000) continue;
+        if(I++%100) continue; // Sample 1 % of relevant hands
+        string hStr = hand_string(h);
 
-            vector<int> left(53);
-            iota(left.begin(), left.end(), 0);
-            for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
+        vector<int> left(53);
+        iota(left.begin(), left.end(), 0);
+        for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
 
-            int ci[4] = {0, 1, 2, 3};
-            int score = 0;
-            do {
-                for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
-                score += win(h);
-            } while(next_combi(ci, 4, left.size()-1));
+        int ci[4] = {0, 1, 2, 3};
+        int score = 0;
+        do {
+            for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
+            score += win(h);
+        } while(next_combi(ci, 4, left.size()-1));
 
-            if(S[en] != score) {
-                cout << "CONFLICT: " << score << " vs. " << S[en] << endl;
-                cout << "Hands: " << hStr << " vs. " << prevH[en] << endl;
-                cout << bitset<13>(en) << " / " << en << endl;
-                break;
-            }
-
-            if(++N % 100 == 0) cout << N << " ok..." << endl;
+        if(S[en] != score) {
+            cout << "CONFLICT: " << score << " vs. " << S[en] << endl;
+            cout << "Hand: " << hStr << endl;
+            cout << bitset<13>(en) << " / " << en << endl;
+            break;
         }
-    } while(next_combi(hv, 4, hvals.size()-1)); // no joker
-    //cout << S.size() << endl;
 
-    //for(auto p : S) cout << p.first << " " << p.second << endl;
+        if(++N % 100 == 0) cout << N << " ok..." << endl;
+    } while(next_combi(hi, 4, hv.size()-1));
+    cout << I << "/" << count << " iterations, tests: " << N << endl;
 }
