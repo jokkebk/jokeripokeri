@@ -55,21 +55,10 @@ def win(h):
 
 deckS = [''.join(p) for p in product('23456789TJQKA', 'CSDH')]+['??']
 
-#print('Calculating...')
-#I = 0
-#c = Counter()
-#for h in combinations(range(53), 5):
-#    I += 1
-#    c[win(h)] += 1
-#print(I, 'iterations')
-#for w,cnt in c.items():
-#    print('%d*%d' % (w,cnt))
-
 while True:
     hand = [deckS.index(s.upper()) for s in input().strip().split()]
     if not hand: break
     left = [c for c in range(53) if c not in hand]
-    leftnojoker = [c for c in range(52) if c not in hand]
 
     ans = []
     for p in range(1,5):
@@ -78,7 +67,7 @@ while True:
             for a in combinations(left, 5-p):
                 S += win(s+a)
                 I += 1
-            #print('%.8f'%(S/I), ' '.join(deckS[c] for c in s), I)
+            print('%.8f'%(S/I), ' '.join(deckS[c] for c in s), S, I)
             ans.append((S/I, ' '.join(deckS[c] for c in s)))
 
     for i,(prob,hand) in enumerate(sorted(ans, reverse=True)[:3]):

@@ -1,10 +1,11 @@
 #ifndef __UTIL_H
 
 #include <string>
+#include <ctime>
 
 #define SWAPIF(a,b) if(a>b) { a ^= b; b ^= a; a ^= b; }
 
-void inline sort5(int *a) {
+inline void sort5(int *a) {
     SWAPIF(a[1], a[2]);
     SWAPIF(a[3], a[4]);
     SWAPIF(a[1], a[3]);
@@ -16,10 +17,15 @@ void inline sort5(int *a) {
     SWAPIF(a[1], a[2]);
 }
 
+inline size_t myrand() {
+    time_t res = std::time(nullptr);
+    return std::hash<std::string>{}(std::string(std::asctime(std::localtime(&res))));
+}
+
 #define NUM_HAND(h) ((h[4]<<24)+(h[3]<<18)+(h[2]<<12)+(h[1]<<6)+h[0])
 
 bool input_hand(int *h);
-void string_hand(int *h, std::string &str);
+void string_hand(int *h, const std::string &str);
 std::string hand_string(int *h, int n=5, int highlight=0);
 void print_hand(int *h, int n=5, int highlight=0);
 

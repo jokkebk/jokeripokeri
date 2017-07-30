@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -26,154 +27,103 @@ using namespace std;
 // Next 13 bits: suits (1 means different suit)
 // Next 13 bits: values (1 means card selected)
 // Suit and value bits are masked to contain only cards relevant for straights
+// If h[0] is joker:
+// Bottom 8 bits: representation of card 1-4 suits
+// Next 13 bits: values
 int enum_hand1(int *h) {
-    if(h[0] != 52) {
+    int r = 0;
+
+    if(h[0] == 52) { // Joker
+        int no[4]={4,4,4,4}; // unity transform
+        for(int i=1, ok=0; i<5; i++) {
+            if(no[h[i]&3] > ok) no[h[i]&3] = ok++; // number suits as they come
+            r = (r<<2) + no[h[i]&3];
+        }
+        for(int i=1; i<5; i++) r |= 1 << h[i]/4 + 8;
+    } else {
         int mask = SH(0x1FF, h[0]/4-4);
-        //cout << "Mask is " << bitset<28>(mask) << endl;
         if(h[0]/4<4) mask += 1<<12;
         else if(h[0]/4==12) mask += 0xF;
         mask &= (1<<13)-1;
-        //cout << "Mask is " << bitset<28>(mask) << endl;
         mask = (mask << 15) + (mask << 2) + 3;
-        //cout << "Mask is " << bitset<28>(mask) << endl;
 
-        int r = 0;
         for(int i=1; i<5; i++) {
-            //cout << "Card " << h[i]/4 << " ";
             r |= 1 << h[i]/4 + 15;
             if((h[i]&3) == (h[0]&3)) r++; // suited
             else r |= 1 << h[i]/4 + 2;
-            //cout << "R is " << bitset<28>(r) << endl;
         }
-        //cout << "R is " << bitset<28>(r) << endl;
-        return r&mask;
+        r &= mask;
     }
-    return 0;
+
+    return r;
 }
 
-int main(int argc, char *argv[]) {
-    map<int,int> S;
-    map<int,string> Shand;
+bool precalc_ok(int *h) {
+    int cards = 0;
+    for(int i=0; i<5; i++) cards |= 1<<h[i]/4;
+    if(__builtin_popcount(cards) != 5) return false; // discrete values
+    if(h[4]==52) return false; // no jokers calculated
+    return !win(h); // no straights or flushes eligible either
+}
 
-    int h[5], cardV = 3; // 13 is joker
-    //string vittu = "KH 2H 5H 6H 7H";
-    //string_hand(h, vittu);
-    //cout << hand_string(h) << " = " << enum_hand1(h) << " " << bitset<28>(enum_hand1(h)) << endl;
-    //vittu = "KH 2D 3D 4D 5D";
-    //string_hand(h, vittu);
-    //cout << hand_string(h) << " = " << enum_hand1(h) << " " << bitset<28>(enum_hand1(h)) << endl;
-    //return 0;
-
-    if(argc>1) cardV = atoi(argv[1]);
-
-    cout << "Calculating single precalculations for " << cardV << endl;
-
-    h[0] = cardV==13 ? 52 : cardV*4;
-
+void precalc_card(map<int,int> & S, int cardV) {
     ostringstream ss;
     ss << "single" << cardV << ".dat";
 
     if(ifstream(ss.str())) {
         ifstream cache(ss.str());
-        cout << "Found cache file " << ss.str() << endl;
         while(cache.good()) {
             int en, score;
             cache >> en >> score;
             S[en] = score;
         }
     } else {
-        int skip=0;
+        cout << "Rebuilding cache file " << ss.str() << endl;
+        int h[5], hi[4] = {0, 1, 2, 3};
+        vector<int> hv(52); // no joker
+        iota(hv.begin(), hv.end(), 0);
+        h[0] = (cardV==13) ? 52 : cardV*4;
+        auto it = find(hv.begin(), hv.end(), h[0]);
+        if(it != hv.end()) hv.erase(it);
 
-        for(int cards=15; cards<(1<<13); cards++) {
-            if(__builtin_popcount(cards) != 4) continue; // 4 cards
-            if(cards & (1<<cardV)) continue; // no selected card
-            for(int suit=1; suit<16; suit++) { // skip flush
-                //if(skip++ % 100 > 10) continue; // only calculate 1 %
-                for(int i=0, c=1; i<13; i++) // construct hand
-                    if(cards & (1<<i)) {
-                        h[c] = i*4 + ((suit>>(c-1))&1);
-                        c++; // thanks C
-                    }
+        int skip = 0;
+        do {
+            for(int i=0; i<4; i++) h[i+1] = hv[hi[i]];
+            if(!precalc_ok(h)) continue;
+            int en = enum_hand1(h);
+            if(S.count(en)) continue; // done
 
-                if(win(h)) continue; // skip straights
+            vector<int> left(53);
+            iota(left.begin(), left.end(), 0);
+            for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
 
-                int en = enum_hand1(h);
+            int ci[4] = {0, 1, 2, 3};
+            int score = 0;
+            do {
+                for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
+                score += win(h);
+            } while(next_combi(ci, 4, left.size()-1));
+            S[en] = score;
+        } while(next_combi(hi, 4, hv.size()-1));
 
-                if(S.count(en)) continue; // done
-                string handStr = hand_string(h); // TODO: remove
-
-                //cout << bitset<28>(en) << " / " << en << " " << handStr << endl;
-
-                vector<int> left(53);
-                iota(left.begin(), left.end(), 0);
-                for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
-
-                int ci[4] = {0, 1, 2, 3};
-                int score = 0;
-                do {
-                    for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
-                    score += win(h);
-                } while(next_combi(ci, 4, left.size()-1));
-                S[en] = score;
-                Shand[en] = handStr;
-            }
-        }
-
-        cout << S.size() << " distincts hands found" << endl;
+        cout << S.size() << " distinct hands found" << endl;
         cout << "Writing cache file!" << endl;
         ofstream wCache(ss.str());
         for(auto p : S) wCache << p.first << " " << p.second << endl;
         wCache.close();
     }
+}
 
-    cout << "Running a simple test suite..." << endl;
+vector<map<int,int>> calcC;
 
-    srand(time(NULL));
-    int I=rand()%100, N=0;
+void precalc_init() {
+    calcC.resize(14);
 
-    int hi[4] = {0, 1, 2, 3};
-    vector<int> hv(52); // no joker in test
-    iota(hv.begin(), hv.end(), 0);
-    auto it = find(hv.begin(), hv.end(), h[0]);
-    if(it != hv.end()) hv.erase(it);
+    for(int cardV=0; cardV<=13; cardV++)
+        precalc_card(calcC[cardV], cardV);
+}
 
-    int count=0;
-    do { // values other than 'card'
-        //cout << count << endl;
-        int cards = 0;
-        for(int i=0; i<4; i++) {
-            h[i+1] = hv[hi[i]];
-            cards |= 1<<h[i+1]/4;
-        }
-        if(__builtin_popcount(cards) != 4) continue; // discrete cards
-        if(cards & (1<<cardV)) continue; // no selected card
-        if(win(h)) continue;
-        count++;
-        int en = enum_hand1(h);
-        if(!S.count(en)) continue; // Let's trust the enumeration this far
-
-        if(I++%100) continue; // Sample 1 % of relevant hands
-        string hStr = hand_string(h);
-
-        vector<int> left(53);
-        iota(left.begin(), left.end(), 0);
-        for(int i=0; i<5; i++) left.erase(find(left.begin(), left.end(), h[i]));
-
-        int ci[4] = {0, 1, 2, 3};
-        int score = 0;
-        do {
-            for(int i=0; i<4; i++) h[i+1] = left[ci[i]];
-            score += win(h);
-        } while(next_combi(ci, 4, left.size()-1));
-
-        if(S[en] != score) {
-            cout << "CONFLICT: " << score << " vs. " << S[en] << endl;
-            cout << "Hand: " << hStr << " vs. " << Shand[en] << endl;
-            cout << bitset<28>(en) << " / " << en << endl;
-            break;
-        }
-
-        if(++N % 100 == 0) cout << N << " ok..." << endl;
-    } while(next_combi(hi, 4, hv.size()-1));
-    cout << I << "/" << count << " iterations, tests: " << N << endl;
+int precalc_hand(int *h) {
+    if(!calcC.size()) precalc_init();
+    return calcC[h[0]/4][enum_hand1(h)];
 }

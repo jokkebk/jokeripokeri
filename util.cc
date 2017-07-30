@@ -10,7 +10,7 @@
 
 using namespace std;
 
-string vals = "23456789TJQKA", suits = "HDCS";
+string vals = "23456789TJQKA", suits = "CDHS";
 
 bool input_hand(int *h) {
     string str;
@@ -23,7 +23,7 @@ bool input_hand(int *h) {
     return true;
 }
 
-void string_hand(int *h, string &str) {
+void string_hand(int *h, const string &str) {
     for(int i=0; i<5; i++) {
         if(str[i*3]=='?') h[i] = 52;
         else {
@@ -90,7 +90,7 @@ int win(int *a) {
     if(c[0]==4) return 15; // Four of a kind
     SWAPIF(c[2], c[1]); // note: reverse
     if(c[0]+c[1]==5) return 8; // Full house
-    if(c[0]+c[1]==4) return /*2; */(c[0]*c[1]==4) ? 1 : 2; // Set or two pair
+    if(c[0]+c[1]==4) return 2; //(c[0]*c[1]==4) ? 1 : 2; // Set or two pair
 
     if(n==4 && (h[4]-h[0]==4 || (h[3]==3 && h[4]==12)))
         return flush ? 30 : 3; // Straight (flush)
