@@ -53,7 +53,7 @@ def win(h):
     if flush: return 30 if wintab[off]==3 else 4
     return wintab[off]
 
-deckS = [''.join(p) for p in product('23456789TJQKA', 'CSDH')]+['??']
+deckS = [''.join(p) for p in product('23456789TJQKA', 'CDHS')]+['??']
 
 while True:
     hand = [deckS.index(s.upper()) for s in input().strip().split()]
