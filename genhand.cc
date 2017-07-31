@@ -4,6 +4,32 @@
 #include "genhand.h"
 #include "util.h"
 
+// Generate functionally mostly distinct hands of 5 with or without joker
+// IF you need unique normalized hands, create a set out of these and
+// iterate that
+void gen_hands(function<void(int *)> f, bool joker) {
+    int h[5], cards = joker ? 53 : 52;
+
+    // funroll loops :D
+    for(h[0]=0; h[0]<cards-4; h[0]+=4) { // only first suit
+        for(h[1]=h[0]+1; h[1]<cards-3; h[1]++) {
+            if((h[1]&3) > 1) continue;
+            for(h[2]=h[1]+1; h[2]<cards-2; h[2]++) {
+                if((h[2]&3) > (h[1]&3)+1) continue;
+                for(h[3]=h[2]+1; h[3]<cards-1; h[3]++) {
+                    int Smax=max(h[1]&3, h[2]&3);
+                    if((h[3]&3) > Smax+1) continue;
+                    for(h[4]=h[3]+1; h[4]<cards; h[4]++) {
+                        int Smax2=max(Smax, h[3]&3);
+                        if((h[4]&3) > Smax2+1) continue; // joker survives
+                        f(h);
+                    }
+                }
+            }
+        }
+    }
+}
+
 void gen_two_pairs(function<void(int *)> f) {
     int h[5];
     for(h[0]=0; h[0]<12*4; h[0]++) { // Smaller pair & suit

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <bitset>
 #include <sstream>
 #include <string>
 #include <cstring>
@@ -33,6 +34,62 @@ void string_hand(int *h, const string &str) {
             h[i] = v*4 + s;
         }
     }
+}
+
+// Normalize hand to increasing value and suit order
+// (suit can increase at most by one within ordered hand)
+void norm_hand(int *h) {
+    int suit[4]={0,1,2,3};
+
+    for(int i=0; i<5; i++) if(h[i]!=52) suit[h[i]&3] |= 1 << 15-h[i]/4;
+    sort4(suit);
+    int tr[4];
+    for(int i=0; i<4; i++) tr[suit[i]&3] = 3-i;
+    // We could do faster with (suit[i]&3) ^ (3-i) above and xor below
+    for(int i=0; i<5; i++) if(h[i]!=52) h[i] = (h[i]&0xFC) + tr[h[i]&3];
+    sort5(h);
+}
+
+// Quick and dirty int conversion
+int hand_int(int *h) {
+    int ret = h[0];
+    for(int i=1; i<5; i++) ret = (ret<<6) + h[i];
+    return ret;
+}
+
+void int_hand(int *h, int hi) {
+    for(int i=0; i<5; i++) h[i] = hi >> (20-i*6);
+}
+
+int C(int n, int k) {
+    if (k > n) return 0;
+    if (k * 2 > n) k = n-k;
+    if (k == 0) return 1;
+
+    int result = n;
+    for(int i = 2; i <= k; ++i ) {
+        result *= (n-i+1);
+        result /= i;
+    }
+    return result;
+}
+
+// Combinatoric numbering of hands
+int hand_num(int *a) {
+    int sum = 0, h[5];
+    memcpy(h, a, 5*sizeof(int));
+    sort5(h);
+    for(int i=0; i<5; i++) sum += C(h[i], i+1);
+    return sum;
+}
+
+// Normalized combinatoric numbering -- no functional duplicates
+int hand_num_norm(int *a) {
+    int sum = 0, h[5];
+    memcpy(h, a, 5*sizeof(int));
+    norm_hand(h);
+    for(int i=0; i<5; i++) sum += C(h[i], i+1);
+    return sum;
 }
 
 string hand_string(int *h, int n, int highlight) {

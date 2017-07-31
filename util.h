@@ -16,6 +16,14 @@ inline void sort5(int *a) {
     SWAPIF(a[2], a[3]);
     SWAPIF(a[1], a[2]);
 }
+ 
+inline void sort4(int *a) {
+    SWAPIF(a[0], a[1]);
+    SWAPIF(a[2], a[3]);
+    SWAPIF(a[1], a[3]);
+    SWAPIF(a[0], a[2]);
+    SWAPIF(a[1], a[2]);
+}
 
 inline size_t myrand() {
     time_t res = std::time(nullptr);
@@ -28,6 +36,14 @@ bool input_hand(int *h);
 void string_hand(int *h, const std::string &str);
 std::string hand_string(int *h, int n=5, int highlight=0);
 void print_hand(int *h, int n=5, int highlight=0);
+
+void norm_hand(int *h);
+int hand_int(int *h);
+void int_hand(int *h, int hi);
+int hand_num(int *a);
+int hand_num_norm(int *a);
+
+int C(int n, int k);
 
 int win(int *a);
 void precalc_win();
