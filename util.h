@@ -42,6 +42,7 @@ int hand_int(int *h);
 void int_hand(int *h, int hi);
 int hand_num(int *a);
 int hand_num_norm(int *a);
+void num_hand(int *h, int n);
 
 int C(int n, int k);
 

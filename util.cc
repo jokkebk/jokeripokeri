@@ -92,6 +92,16 @@ int hand_num_norm(int *a) {
     return sum;
 }
 
+// Combinatoric numbering to a hand
+void num_hand(int *h, int n) {
+    for(int i=4; i>=0; i--) {
+        int p=0;
+        while(C(p+1, i+1) <= n) p++;
+        h[i] = p;
+        n -= C(p, i+1);
+    }
+}
+
 string hand_string(int *h, int n, int highlight) {
     ostringstream ss;
     for(int i=0; i<n; i++) {
