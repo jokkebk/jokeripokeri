@@ -20,6 +20,8 @@ int main() {
         iota(left.begin(), left.end(), 0);
         for(int c : h) left.erase(find(left.begin(), left.end(), c));
 
+        cout << hand_num_norm(h) << endl;
+
         for(int s=1; s<32; s++) {
             int sel[5] = {52,52,52,52,52}, n=0, ci[4] = {0,1,2,3};
             for(int j=0; j<5; j++) if((s>>j)&1) sel[n++] = h[j];

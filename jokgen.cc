@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <set>
 #include <utility>
 #include <tuple>
 #include <algorithm>
@@ -17,25 +18,27 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
     int h[5] = {0,1,2,3,4}, h2[5];
-    int sample = 50000;
-    if(argc > 1) sample = atoi(argv[1]);
-    int I = myrand()%sample, N = 0; //2869685;
-    if(argc > 2) I = atoi(argv[2]);
-    double wins=0;
+    int sample=10000;
+    int I=myrand()%sample, N=0;
 
     precalc_init();
 
-    cout << "Aiming for " << I << endl;
+    set<int> seen;
     clock_t start = clock();
     do {
-        if(I++ % sample) continue;
-        //print_hand(h);
-        string handStr = hand_string(h);
+        //if(I++%sample) continue;
+        //N++;
+        int num = hand_num_norm(h);
+
+        if(seen.count(num)) continue;
+        seen.insert(num);
 
         vector<int> left(53);
         vector<pair<double,string>> ans;
         iota(left.begin(), left.end(), 0);
         for(int c : h) left.erase(find(left.begin(), left.end(), c));
+
+        pair<double,int> best = make_pair(0.0, 0);
 
         for(int s=1; s<32; s++) {
             int sel[5] = {52,52,52,52,52}, n=0, ci[4] = {0,1,2,3};
@@ -46,7 +49,7 @@ int main(int argc, char *argv[]) {
                 for(int i=0, j=1; i<5; i++) if(h[i]!=h2[0]) h2[j++] = h[i];
                 if(precalc_ok(h2)) {
                     int S = precalc_hand(h2), I = 194580;
-                    ans.push_back(make_pair((double)S/I, hand_string(h, 5, s)));
+                    best = max(best, make_pair((double)S/I, s));
                     continue;
                 }
             }
@@ -57,17 +60,13 @@ int main(int argc, char *argv[]) {
                 S+=win(sel);
                 I++;
             } while(next_combi(ci, 5-n, left.size()-1));
-            //cout << fixed << setprecision(8) << S/I << " " << hand_string(sel, n) << " " << I << endl;
-            ans.push_back(make_pair((double)S/I, hand_string(h, 5, s)));
+            best = max(best, make_pair((double)S/I, s));
         }
         double prob;
-        string hand;
-        tie(prob, hand) = *max_element(ans.begin(), ans.end());
-        cout << handStr << " " << setw(8) << fixed << setprecision(5) << prob << " " << hand << endl;
-        wins += prob;
-        N += 1;
+        int hand;
+        tie(prob, hand) = best;
+        cout << num << " " << hand << " " << setw(8) << fixed << setprecision(5) << prob << endl;
     } while(next_combi(h, 5, 52));
     double duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Calculated " << N << " hands in " << fixed << setprecision(3) << duration << "s" << endl;
-    cout << "Average return " << wins/N << endl;
 }
