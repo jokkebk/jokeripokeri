@@ -26,8 +26,6 @@ int main(int argc, char *argv[]) {
     set<int> seen;
     clock_t start = clock();
     do {
-        //if(I++%sample) continue;
-        //N++;
         int num = hand_num_norm(h);
 
         if(seen.count(num)) continue;
@@ -63,9 +61,9 @@ int main(int argc, char *argv[]) {
             best = max(best, make_pair((double)S/I, s));
         }
         double prob;
-        int hand;
-        tie(prob, hand) = best;
-        cout << num << " " << hand << " " << setw(8) << fixed << setprecision(5) << prob << endl;
+        int sel;
+        tie(prob, sel) = best;
+        cout << num << " " << sel << " " << setprecision(8) << prob << endl;
     } while(next_combi(h, 5, 52));
     double duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Calculated " << N << " hands in " << fixed << setprecision(3) << duration << "s" << endl;
