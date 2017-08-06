@@ -29,8 +29,8 @@ def hand_str(h, s=0):
 
 # Return bitmask of positions with value v
 def val_mask(h, v):
-    return sum(1<<i for i in range(5) if h[i]//4 == v)
+    return sum(1<<i for i,c in enumerate(h) if c//4 == v)
 
 # Return bitmask of positions with value v
-def card_mask(h, c):
-    return sum(1<<i for i in range(5) if h[i] == c)
+def card_mask(h, v):
+    return sum(1<<i for i,c in enumerate(h) if c == v)

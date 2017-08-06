@@ -3,3 +3,4 @@
 *.dat
 *.exe
 __pycache__
+*.pyc

@@ -20,29 +20,28 @@ def rawwin(v):
         return 3 # Straight
     return 0
 
-if os.path.isfile('jokeri.dat'):
-    with open ('jokeri.dat', 'rb') as fp:
-            wintab = pickle.load(fp)
-else:        
-    wintab = [0] * (2**20)
-
-    # Precalculate win rates by pure card numbers, no jokers or suits
-    for h in product(range(13), repeat=5):
-        off = 0
-        for i in range(5): off = off*16 + h[i]
-        wintab[off] = rawwin(sorted(h))
-
-    with open('jokeri.dat', 'wb') as fp:
-        pickle.dump(wintab, fp)
-        print('Wrote cache file')
 
 def win(h):
+    h = sorted(h)
+    if 52 in h: # Handle jokers by replacement
+        best = 0
+        for c in range(h[0]&3, 52, 4): # Try suited values
+            h[4] = c
+            best = max(best, win(h))
+        return best
+    v = [c//4 for c in h]
+
+    if all((c&3) == (h[0]&3) for c in h[1:] if c!=52):
+        return 30 if rawwin(v)==3 else 4
+    return rawwin(v)
+
+def prewin(h):
     if 52 in h: # Handle jokers by replacement
         h = sorted(h)
         best = 0
         for c in range(h[0]&3, 52, 4): # Try suited values
             h[4] = c
-            best = max(best, win(h))
+            best = max(best, prewin(h))
         return best
 
     flush = True
@@ -53,22 +52,39 @@ def win(h):
     if flush: return 30 if wintab[off]==3 else 4
     return wintab[off]
 
-deckS = [''.join(p) for p in product('23456789TJQKA', 'CDHS')]+['??']
+if __name__ == "__main__":
+    print(win([0,4,8,12,16]))
+    exit(1)
+    if os.path.isfile('jokeri.dat'):
+        with open ('jokeri.dat', 'rb') as fp:
+                wintab = pickle.load(fp)
+    else:        
+        wintab = [0] * (2**20)
 
-while True:
-    hand = [deckS.index(s.upper()) for s in input().strip().split()]
-    if not hand: break
-    left = [c for c in range(53) if c not in hand]
+        # Precalculate win rates by pure card numbers, no jokers or suits
+        for h in product(range(13), repeat=5):
+            off = 0
+            for i in range(5): off = off*16 + h[i]
+            wintab[off] = rawwin(sorted(h))
 
-    ans = []
-    for p in range(1,5):
-        for s in combinations(hand, p):
-            S, I = 0, 0
-            for a in combinations(left, 5-p):
-                S += win(s+a)
-                I += 1
-            print('%.8f'%(S/I), ' '.join(deckS[c] for c in s), S, I)
-            ans.append((S/I, ' '.join(deckS[c] for c in s)))
+        with open('jokeri.dat', 'wb') as fp:
+            pickle.dump(wintab, fp)
+            print('Wrote cache file')
 
-    for i,(prob,hand) in enumerate(sorted(ans, reverse=True)[:3]):
-        print('%d. %8.5f %s' % (i+1, prob, hand))
+    while True:
+        hand = [deckS.index(s.upper()) for s in input().strip().split()]
+        if not hand: break
+        left = [c for c in range(53) if c not in hand]
+
+        ans = []
+        for p in range(1,5):
+            for s in combinations(hand, p):
+                S, I = 0, 0
+                for a in combinations(left, 5-p):
+                    S += prewin(s+a)
+                    I += 1
+                print('%.8f'%(S/I), ' '.join(deckS[c] for c in s), S, I)
+                ans.append((S/I, ' '.join(deckS[c] for c in s)))
+
+        for i,(prob,hand) in enumerate(sorted(ans, reverse=True)[:3]):
+            print('%d. %8.5f %s' % (i+1, prob, hand))
