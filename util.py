@@ -20,7 +20,9 @@ def num_hand(n):
         n -= C(p, i+1);
     return h
 
-deckS = [''.join(p) for p in product('23456789TJQKA', 'CDHS')]+['??']
+#       abcdefghijklm
+valS = '23456789TJQKA'
+deckS = [''.join(p) for p in product(valS, 'CDHS')]+['??']
 
 def hand_str(h, s=0):
     return ' '.join('%s%s' % ('*' if (s&(1<<i)) else '', deckS[c]) for i,c in enumerate(h))
@@ -29,3 +31,6 @@ def hand_str(h, s=0):
 def val_mask(h, v):
     return sum(1<<i for i in range(5) if h[i]//4 == v)
 
+# Return bitmask of positions with value v
+def card_mask(h, c):
+    return sum(1<<i for i in range(5) if h[i] == c)
