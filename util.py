@@ -1,7 +1,8 @@
 from itertools import product
-from functools import reduce
+from functools import reduce, lru_cache
 from operator import mul
 
+@lru_cache(maxsize=None)
 def C(n, k):
     if k > n: return 0
     k = min(k, n-k)
