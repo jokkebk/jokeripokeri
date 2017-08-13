@@ -1,7 +1,7 @@
 from collections import Counter, defaultdict
 from itertools import product, combinations
 import sys, time
-from util import num_hand, hand_str
+from util import num_hand, hand_str, C
 from jokeri import win
 from match import match_hand
 
@@ -15,7 +15,7 @@ for line in open(sys.argv[1]):
     w = '%.1f' % float(w)
     hist[w] += 1
     N += 1
-    if N%10 or len(samp[w])>10: continue
+    if N%1 or len(samp[w])>10: continue
     num, sel = int(num), int(sel)
     h = num_hand(int(num))
     if float(win(h)) == float(w): continue # Self-evident
@@ -27,7 +27,8 @@ for line in open(sys.argv[1]):
 print('%.3f seconds' % (time.clock() - start))
 print(len(hist))
 for w in sorted(hist, reverse=True):
+    if float(w) <= 3: break
     #print('%6s: %.1f %%' % (w, 100.0*hist[w]/N))
-    print('%6s: %s' % (w, ''.join(['#']*int(100*hist[w]/N))))
-    for h in samp[w]:
-        print('  ', h)
+    print('%6s: %4d %s' % (w, hist[w], ''.join(['#']*int(100*hist[w]/N))))
+    print(' '.join(samp[w]))
+    #for h in samp[w]: print('  ', h)

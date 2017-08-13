@@ -1,8 +1,15 @@
+import sys
 from itertools import product
-from functools import reduce, lru_cache
 from operator import mul
+from functools import reduce
 
-@lru_cache(maxsize=None)
+#if sys.version_info >= (3,3):
+#    from functools import lru_cache
+#else:
+#    def lru_cache(*args, **kwargs):
+#        return lambda f: f
+#
+#@lru_cache(maxsize=None)
 def C(n, k):
     if k > n: return 0
     k = min(k, n-k)

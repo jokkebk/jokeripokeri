@@ -25,7 +25,7 @@ from jokeri import win
 # 3456789T abc s? = open-ended straight flush draw with joker
 #
 # Joker goes always last.
-def match_hand(h, p):
+def match_hand(h, p, skip=0):
     h = sorted(h)
     if h[4]==52:
         jmask = 16
@@ -60,7 +60,6 @@ def match_hand(h, p):
         if p.count('s') == sc:
             return jmask + sum(1<<i for i,c in enumerate(h) if (c&3)==suit)
     else: # Straight-type pattern
-        #print('Noniin!')
         val_pat = p.split()
         hmasks = [] # Do it with arrays to support suited
         if len(val_pat)>2 and val_pat[2][0]=='s': # Suited
@@ -76,16 +75,20 @@ def match_hand(h, p):
         mask = sum(1<<ord(c)-ord('a') for c in val_pat[1])
 
         match = False
-        for hmask, s in hmasks:
-            for v in val_pat[0]:
-                v = valS.index(v)
-                #print(v, 'vs', bin(hmask)[2:])
+        for v in val_pat[0]:
+            v = valS.index(v)
+            for hmask, s in hmasks:
+                #if debug: print(v, 'vs', bin(hmask)[2:])
                 if v==12: # Ace
                     if not (hmask&0x1000): continue
                     if ((hmask&0xF) & mask//2) != mask//2: continue
                 else:
                     if ((hmask>>v) & mask) != mask: continue
+                if skip: # skip=1 can be used to return second match
+                    skip -= 1
+                    continue
                 if suited:
+                    #if debug: print('YAY!')
                     return sum(card_mask(h, ((ord(c)-ord('a')+v)%13)*4+s) \
                             for c in val_pat[1]) + jmask
                 else:
