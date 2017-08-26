@@ -41,10 +41,11 @@ void string_hand(int *h, const string &str) {
 void norm_hand(int *h) {
     int suit[4]={0,1,2,3};
 
+    // Make bitmap of values within each suit, low value = high bit
     for(int i=0; i<5; i++) if(h[i]!=52) suit[h[i]&3] |= 1 << 15-h[i]/4;
-    sort4(suit);
-    int tr[4];
-    for(int i=0; i<4; i++) tr[suit[i]&3] = 3-i;
+    sort4(suit); // sort suits so highest value suits go first
+    int tr[4]; // translation for suits, small values for small suits
+    for(int i=0; i<4; i++) tr[suit[i]&3] = 3-i; 
     // We could do faster with (suit[i]&3) ^ (3-i) above and xor below
     for(int i=0; i<5; i++) if(h[i]!=52) h[i] = (h[i]&0xFC) + tr[h[i]&3];
     sort5(h);
