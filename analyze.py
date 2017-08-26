@@ -48,8 +48,20 @@ strategy = (
         ('A23456789T abce s', 2.10417),
          
         # Two card straight flush draw with joker
-        ('456789T ab s?', 1.5),
-        #('3456789T ac s?', 1.25),
+        ('456789T ab s?', 1.38032), # to 1.45833, '3J ab s?' is lower
+
+        # Three card straight draw with joker
+        ('3456789T abc ?', 1.375),
+
+        #############################################################
+        # Here start the complicated straight flush draw with joker #
+        #############################################################
+
+        # Three card one gapper straight flush draw with joker
+        #('346789T ac s?', 1.31117),
+
+        # Two card straight flush draw with joker at the ends
+        #('3J ab s?', 1.33245),
 
         #('uu', 0.84673), # pair
         #('sss?', 0.0), # flush draw with joker
@@ -66,7 +78,7 @@ def handle(line):
         s = match_hand(h, p)
         if s: return (0 if s==sel else -1, num, sel, win, i)
 
-    return ('%.1f'%win, num, sel, win, 0)
+    return ('%.2f'%win, num, sel, win, 0)
 
 if __name__ == '__main__':
     N = 50 if len(sys.argv) < 3 else int(sys.argv[2])
@@ -90,6 +102,7 @@ if __name__ == '__main__':
             worst[si] = min(worst[si], win)
             right += 1
         elif w==-1:
+            sel1 = match_hand(num_hand(num), strategy[si][0], 0)
             sel2 = match_hand(num_hand(num), strategy[si][0], 1)
             if sel2 == sel: # close call!
                 #print('Second opinion: %d vs. %d' % (sel, sel2))
@@ -97,7 +110,7 @@ if __name__ == '__main__':
                 worst[si] = min(worst[si], win)
                 right += 1
             else:
-                print('WRONG: %s' % hand_str(num_hand(num), sel), win, w, strategy[si], hand_str(num_hand(num), sel2))
+                print('WRONG: %s' % hand_str(num_hand(num), sel), win, w, strategy[si], hand_str(num_hand(num), sel1))
         else:
             neutral += 1
             remain[w] += 1
