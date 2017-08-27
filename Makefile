@@ -1,7 +1,7 @@
 #FILES = button.hex blink.hex stop.hex
 
 CC = g++
-CFLAGS = -O3 --std=c++11
+CFLAGS = -O3 --std=c++11 -I\koodi\lib\mingw-std-threads -Wall
 
 all: test.exe testpre.exe jokeri.exe jokgen.exe
 

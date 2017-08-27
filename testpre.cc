@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
                 if(!precalc_ok(h)) continue;
                 if(I++%N) continue; // Sample 1 % of relevant hands
 
-                int score2 = precalc_hand(h), num2 = 194580;
+                int score2 = precalc_hand(h);
                 int en = enum_hand1(h);
                 string hStr = hand_string(h);
 

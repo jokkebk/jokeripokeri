@@ -39,7 +39,7 @@ int enum_hand1(int *h) {
             if(no[h[i]&3] > ok) no[h[i]&3] = ok++; // number suits as they come
             r = (r<<2) + no[h[i]&3];
         }
-        for(int i=1; i<5; i++) r |= 1 << h[i]/4 + 8;
+        for(int i=1; i<5; i++) r |= 1 << (h[i]/4 + 8);
     } else {
         int mask = SH(0x1FF, h[0]/4-4);
         if(h[0]/4<4) mask += 1<<12;
@@ -48,9 +48,9 @@ int enum_hand1(int *h) {
         mask = (mask << 15) + (mask << 2) + 3;
 
         for(int i=1; i<5; i++) {
-            r |= 1 << h[i]/4 + 15;
+            r |= 1 << (h[i]/4 + 15);
             if((h[i]&3) == (h[0]&3)) r++; // suited
-            else r |= 1 << h[i]/4 + 2;
+            else r |= 1 << (h[i]/4 + 2);
         }
         r &= mask;
     }
@@ -86,7 +86,6 @@ void precalc_card(map<int,int> & S, int cardV) {
         auto it = find(hv.begin(), hv.end(), h[0]);
         if(it != hv.end()) hv.erase(it);
 
-        int skip = 0;
         do {
             for(int i=0; i<4; i++) h[i+1] = hv[hi[i]];
             if(!precalc_ok(h)) continue;
