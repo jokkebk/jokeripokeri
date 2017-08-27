@@ -18,12 +18,12 @@
 
 using namespace std;
 
-pair<double,int> optimal_selection(int *h) {
-    pair<double,int> best = make_pair(0.0, 0);
+void optimal_selection(int *h, int *sel, double *prob) {
+    *prob = 0;
 
-    vector<int> left(53);
-    iota(left.begin(), left.end(), 0);
-    for(int i=0; i<5; i++)  left.erase(find(left.begin(), left.end(), h[i]));
+    int left[48];
+    for(int c=0, lp=0, hp=0; c<53; c++)
+        if(h[hp] == c) hp++; else left[lp++] = c;
 
     for(int s=1; s<32; s++) {
         int sel[5], n=0;
@@ -34,10 +34,13 @@ pair<double,int> optimal_selection(int *h) {
             for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
             S+=win(sel);
         } while(next_combi(ci, 5-n, 53-5-1));
-        best = max(best, make_pair((double)S/C(53-5, 5-n), s));
-    }
 
-    return best;
+        double p = (double)S/C(53-5, 5-n);
+        if(p > *prob) {
+            *prob = p;
+            *sel = s;
+        }
+    }
 }
 
 void process(int *hnum, int n, int off, int step, double *ansP, int *ansS) {
@@ -45,7 +48,7 @@ void process(int *hnum, int n, int off, int step, double *ansP, int *ansS) {
 
     for(int i=off; i<n; i+=step) {
         num_hand(h, hnum[i]);
-        tie(ansP[i], ansS[i]) = optimal_selection(h);
+        optimal_selection(h, ansS+i, ansP+i);
     }
 }
 
@@ -53,7 +56,7 @@ int main(int argc, char *argv[]) {
     clock_t start;
     double duration;
     int sample=1000;
-    int I=myrand()%sample;
+    int I=0;//myrand()%sample;
     unsigned maxthreads = 999;
 
     if(argc > 1) sample = atoi(argv[1]);
@@ -86,10 +89,16 @@ int main(int argc, char *argv[]) {
         th[i] = thread(process, hnump, hnum.size(), i*sample, sample*threads, ansP, ansS);
     for(int i=0; i<threads; i++) th[i].join(); // wait all threads to complete
     duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
-    for(int i=0; i<(int)hnum.size(); i++)
-        if(ansS[i]) cout << hnum[i] << " " << ansS[i] << " " << setprecision(8) <<
-            ansP[i] << endl;
+    //for(int i=0; i<(int)hnum.size(); i++)
+    //    if(ansS[i]) cout << hnum[i] << " " << ansS[i] << " " << setprecision(8) <<
+    //        ansP[i] << endl;
     cout << fixed << setprecision(3) << duration << "s" << endl;
+
+    float sum = 0;
+
+    for(int i=0; i<hnum.size(); i++) sum += ansP[i];
+
+    cout << sum << endl;
 
     delete ansP;
     delete ansS;

@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <numeric>
+#include <algorithm>
 
 #include "util.h"
 
@@ -28,7 +29,7 @@ void string_hand(int *h, const string &str) {
     for(int i=0; i<5; i++) {
         if(str[i*3]=='?') h[i] = 52;
         else {
-            int v, s;
+            size_t v, s;
             v = vals.find(toupper(str[i*3]));
             s = suits.find(toupper(str[i*3+1]));
             h[i] = v*4 + s;
