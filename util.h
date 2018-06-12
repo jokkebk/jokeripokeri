@@ -2,8 +2,10 @@
 
 #include <string>
 #include <ctime>
+#include <set>
 
 #define SWAPIF(a,b) if(a>b) { a ^= b; b ^= a; a ^= b; }
+#define SEMINORMAL(h) (((h)[0] & 3)==0 && (((h)[1]&3)<2) && (((h)[2]&3)<3))
 
 inline void sort5(int *a) {
     SWAPIF(a[1], a[2]);
@@ -43,6 +45,8 @@ void int_hand(int *h, int hi);
 int hand_num(int *a);
 int hand_num_norm(int *a);
 void num_hand(int *h, int n);
+std::set<int> gen_normal_hand_nums();
+bool is_paired(int *h);
 
 int C(int n, int k);
 

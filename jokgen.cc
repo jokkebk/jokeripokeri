@@ -18,13 +18,19 @@
 
 using namespace std;
 
-void optimal_selection(int *h, int *sel, double *prob) {
-    *prob = 0;
+void optimal_selection(int hnum, int *ansS, double *ansP) {
+    int h[5];
+
+    num_hand(h, hnum);
 
     int left[48];
-    for(int c=0, lp=0, hp=0; c<53; c++)
-        if(h[hp] == c) hp++; else left[lp++] = c;
+    int c, lp, hp;
 
+    for(c=0, lp=0, hp=0; c<53; c++)
+        if(hp < 5 && h[hp] == c) hp++; else left[lp++] = c;
+
+    *ansP = 0.0;
+    *ansS = 0;
     for(int s=1; s<32; s++) {
         int sel[5], n=0;
         for(int j=0; j<5; j++) if((s>>j)&1) sel[n++] = h[j];
@@ -36,32 +42,33 @@ void optimal_selection(int *h, int *sel, double *prob) {
         } while(next_combi(ci, 5-n, 53-5-1));
 
         double p = (double)S/C(53-5, 5-n);
-        if(p > *prob) {
-            *prob = p;
-            *sel = s;
+
+        if(p > *ansP) {
+            *ansP = p;
+            *ansS = s;
         }
     }
+
+    *ansS = win(h);
 }
 
 void process(int *hnum, int n, int off, int step, double *ansP, int *ansS) {
-    int h[5];
-
     for(int i=off; i<n; i+=step) {
-        num_hand(h, hnum[i]);
-        optimal_selection(h, ansS+i, ansP+i);
+        optimal_selection(hnum[i], ansS+i, ansP+i);
     }
 }
 
 int main(int argc, char *argv[]) {
     clock_t start;
     double duration;
-    int sample=1000;
+    int sample=1024;
     int I=0;//myrand()%sample;
     unsigned maxthreads = 999;
 
     if(argc > 1) sample = atoi(argv[1]);
     if(argc > 2) maxthreads = atoi(argv[2]);
 
+    /*
     cout << "Sampling every " << sample << "th starting from " << I << endl;
 
     int h[5] = {0,1,2,3,4};
@@ -74,8 +81,11 @@ int main(int argc, char *argv[]) {
     duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << seen.size() << " hands in " << fixed << setprecision(3) << duration << "s" << endl;
 
-
     vector<int> hnum(seen.begin(), seen.end());
+    */
+    vector<int> hnum(sample);
+
+    for(int i=0; i<sample; i++) hnum[i] = (i*1025) % C(53,5);
     int *hnump = &hnum[0];
     double *ansP = new double[hnum.size()];
     int *ansS = new int[hnum.size()];
@@ -86,7 +96,7 @@ int main(int argc, char *argv[]) {
     thread th[threads];
     cout << threads << " threads" << endl;
     for(int i=0; i<threads; i++)
-        th[i] = thread(process, hnump, hnum.size(), i*sample, sample*threads, ansP, ansS);
+        th[i] = thread(process, hnump, hnum.size(), i, threads, ansP, ansS);
     for(int i=0; i<threads; i++) th[i].join(); // wait all threads to complete
     duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
     //for(int i=0; i<(int)hnum.size(); i++)
@@ -94,11 +104,13 @@ int main(int argc, char *argv[]) {
     //        ansP[i] << endl;
     cout << fixed << setprecision(3) << duration << "s" << endl;
 
-    float sum = 0;
+    float sumP = 0;
+    int sumS = 0;
 
-    for(int i=0; i<hnum.size(); i++) sum += ansP[i];
+    for(int i=0; i<hnum.size(); i++) sumS += ansS[i];
+    for(int i=0; i<hnum.size(); i++) sumP += ansP[i];
 
-    cout << sum << endl;
+    cout << sumP << " " << sumS << endl;
 
     delete ansP;
     delete ansS;
