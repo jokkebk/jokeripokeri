@@ -156,34 +156,49 @@ int win(int *a) {
     memcpy(h, a, 5*sizeof(int));
     sort5(h);
 
-    if(h[4]==52) { // Joker
-        int best = 0;
-        for(h[4]=h[0]&3; h[4]<52; h[4]+=4) best = max(best, win(h));
-        return best;
-    }
+	int c[5] = { 1,0,0,0,0 }, n = 0;
+	bool flush = (h[0] & 3) == (h[1] & 3) && (h[0] & 3) == (h[2] & 3) &&
+			(h[0] & 3) == (h[3] & 3);
 
-    int c[5] = {1,0,0,0,0}, n=0;
-    bool flush = (h[0]&3)==(h[1]&3) && (h[0]&3)==(h[2]&3) &&
-        (h[0]&3)==(h[3]&3) && (h[0]&3)==(h[4]&3);
+    if(h[4]==52) { // joker
+		h[0] >>= 2;
+		for (int i = 1; i < 4; i++) {
+			h[i] >>= 2;
+			if (h[i] != h[i - 1]) n++;
+			c[n]++;
+		}
 
-    h[0]>>=2;
-    for(int i=1; i<5; i++) {
-        h[i]>>=2;
-        if(h[i] != h[i-1]) n++;
-        c[n]++;
-    }
+		if (c[0] == 4) return 50; // five of a kind
+		SWAPIF(c[1], c[0]); // note: reverse
+		if (c[0] == 3) return 15; // four of a kind
+		if (c[0] + c[1] == 4) return 8; // full house
+		SWAPIF(c[2], c[1]); // note: reverse
+		if (c[0] == 2 || c[1] == 2) return 2; // set or two pair
 
-    if(c[0]==5) return 50; // Five of a kind
-    SWAPIF(c[1], c[0]); // note: reverse
-    if(c[0]==4) return 15; // Four of a kind
-    SWAPIF(c[2], c[1]); // note: reverse
-    if(c[0]+c[1]==5) return 8; // Full house
-    if(c[0]+c[1]==4) return 2; //(c[0]*c[1]==4) ? 1 : 2; // Set or two pair
+		if (n == 3 && (h[3] - h[0] <= 4 || (h[2] <= 3 && h[3] == 12)))
+			return flush ? 30 : 3; // straight (flush)
+    } else {
+		flush = flush && (h[0] & 3) == (h[4] & 3);
 
-    if(n==4 && (h[4]-h[0]==4 || (h[3]==3 && h[4]==12)))
-        return flush ? 30 : 3; // Straight (flush)
+		h[0] >>= 2;
+		for (int i = 1; i < 5; i++) {
+			h[i] >>= 2;
+			if (h[i] != h[i - 1]) n++;
+			c[n]++;
+		}
 
-    return flush ? 4 : 0;
+		SWAPIF(c[1], c[0]); // note: reverse
+		if (c[0] == 4) return 15; // Four of a kind
+		SWAPIF(c[2], c[1]); // note: reverse
+		if (c[0] + c[1] == 5) return 8; // Full house
+		if (c[0] + c[1] == 4) return 2; //(c[0]*c[1]==4) ? 1 : 2; // Set or two pair
+
+		if (n == 4 && (h[4] - h[0] == 4 || (h[3] == 3 && h[4] == 12)))
+			return flush ? 30 : 3; // Straight (flush)
+
+	}
+
+	return flush ? 4 : 0;
 }
 
 map<int,int> precalc;
