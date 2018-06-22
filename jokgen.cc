@@ -10,107 +10,76 @@
 #include <ctime>
 #include <bitset>
 #include <cstring>
-#include <mingw.thread.h>
 
-#include "genhand.h"
+#define THREADED
+
+#ifdef THREADED
+#include <mingw.thread.h>
+#endif
+
 #include "util.h"
-#include "single.h"
+#include "fastone.h"
 
 using namespace std;
 
-void optimal_selection(int hnum, int *ansS, double *ansP) {
-    int h[5];
-
-    num_hand(h, hnum);
-
-    int left[48];
-    int c, lp, hp;
-
-    for(c=0, lp=0, hp=0; c<53; c++)
-        if(hp < 5 && h[hp] == c) hp++; else left[lp++] = c;
-
-    *ansP = 0.0;
-    *ansS = 0;
-    for(int s=1; s<32; s++) {
-        int sel[5], n=0;
-        for(int j=0; j<5; j++) if((s>>j)&1) sel[n++] = h[j];
-
-        int S=0, ci[4] = {0,1,2,3};
-        do {
-            for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
-            S+=win(sel);
-        } while(next_combi(ci, 5-n, 53-5-1));
-
-        double p = (double)S/C(53-5, 5-n);
-
-        if(p > *ansP) {
-            *ansP = p;
-            *ansS = s;
-        }
-    }
-
-    *ansS = win(h);
-}
-
 void process(int *hnum, int n, int off, int step, double *ansP, int *ansS) {
+    int h[5];
     for(int i=off; i<n; i+=step) {
-        optimal_selection(hnum[i], ansS+i, ansP+i);
+        num_hand(h, hnum[i]);
+        ansS[i] = optimal_selection(h, ansP+i);
     }
 }
 
 int main(int argc, char *argv[]) {
+    set<int> nums = gen_normal_hand_nums();
     clock_t start;
     double duration;
-    int sample=1024;
-    int I=0;//myrand()%sample;
-    unsigned maxthreads = 999;
+    cout << nums.size() << endl;
+    vector<int> hnum(nums.begin(), nums.end());
 
-    if(argc > 1) sample = atoi(argv[1]);
-    if(argc > 2) maxthreads = atoi(argv[2]);
+    //hnum.erase(hnum.begin()+10000, hnum.end());
 
-    /*
-    cout << "Sampling every " << sample << "th starting from " << I << endl;
-
-    int h[5] = {0,1,2,3,4};
-    set<int> seen;
-    start = clock();
-    do {
-        int num = hand_num_norm(h);
-        seen.insert(num);
-    } while(next_combi(h, 5, 52));
-    duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
-    cout << seen.size() << " hands in " << fixed << setprecision(3) << duration << "s" << endl;
-
-    vector<int> hnum(seen.begin(), seen.end());
-    */
-    vector<int> hnum(sample);
-
-    for(int i=0; i<sample; i++) hnum[i] = (i*1025) % C(53,5);
     int *hnump = &hnum[0];
     double *ansP = new double[hnum.size()];
     int *ansS = new int[hnum.size()];
 
     start = clock();
-    //process(hnump, hnum.size(), I, sample, ansP, ansS);
-    int threads = min(maxthreads, thread::hardware_concurrency());
+#ifndef THREADED
+    process(hnump, hnum.size(), 0, 1, ansP, ansS);
+#else
+    int threads = thread::hardware_concurrency(); // max out
     thread th[threads];
-    cout << threads << " threads" << endl;
+    cout << "Running " << threads << " threads" << endl;
     for(int i=0; i<threads; i++)
         th[i] = thread(process, hnump, hnum.size(), i, threads, ansP, ansS);
     for(int i=0; i<threads; i++) th[i].join(); // wait all threads to complete
+#endif
     duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
-    //for(int i=0; i<(int)hnum.size(); i++)
-    //    if(ansS[i]) cout << hnum[i] << " " << ansS[i] << " " << setprecision(8) <<
-    //        ansP[i] << endl;
-    cout << fixed << setprecision(3) << duration << "s" << endl;
+
+    cout << hnum.size() << " in " << fixed << setprecision(3) << duration << "s" << endl;
 
     float sumP = 0;
     int sumS = 0;
+    long sumN = 0;
 
-    for(int i=0; i<hnum.size(); i++) sumS += ansS[i];
-    for(int i=0; i<hnum.size(); i++) sumP += ansP[i];
+    FILE * out = NULL;
+    if(argc > 1) {
+        cout << "Write to " << argv[1] << endl;
+        out = fopen(argv[1], "wt");
+    }
 
-    cout << sumP << " " << sumS << endl;
+    for(size_t i=0; i<hnum.size(); i++) {
+        sumS += ansS[i];
+        sumP += ansP[i];
+        sumN += hnum[i];
+        if(out != NULL)
+            fprintf(out, "%d %d %8.5f\n", hnum[i], ansS[i], ansP[i]);
+        //cout << hnum[i] << " " << ansS[i] << " " << setprecision(5) << ansP[i] << endl;
+    }
+
+    if(out != NULL) fclose(out);
+
+    cout << sumP << " " << sumS << " " << sumN << endl;
 
     delete ansP;
     delete ansS;

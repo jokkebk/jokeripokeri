@@ -6,6 +6,8 @@
 
 #define SWAPIF(a,b) if(a>b) { a ^= b; b ^= a; a ^= b; }
 #define SEMINORMAL(h) (((h)[0] & 3)==0 && (((h)[1]&3)<2) && (((h)[2]&3)<3))
+#define ONE_BIT(v) (!((v) & ((v)-1)))
+
 
 inline void sort5(int *a) {
     SWAPIF(a[1], a[2]);
