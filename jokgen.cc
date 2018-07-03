@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
     set<int> nums = gen_normal_hand_nums();
     clock_t start;
     double duration;
-    cout << nums.size() << endl;
     vector<int> hnum(nums.begin(), nums.end());
 
     //hnum.erase(hnum.begin()+10000, hnum.end());

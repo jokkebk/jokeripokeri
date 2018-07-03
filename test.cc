@@ -41,12 +41,6 @@ int main() {
 
     C.clear();
 
-    cout << "Precalculating..." << endl;
-    start = clock();
-    precalc_win();
-    duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
-    cout << fixed << setprecision(5) << duration << "s" << endl;
-
     cout << "Calculated counts:" << endl;
     n = 0;
     start = clock();

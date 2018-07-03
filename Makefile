@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -O3 --std=c++11 -I\koodi\lib\mingw-std-threads -Wall
 
-all: test.exe jokeri.exe jokgen.exe
+all: test.exe jokeri.exe jokgen.exe test_win.exe
 
 clean:
 	$(RM) *.o *.exe

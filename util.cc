@@ -168,14 +168,12 @@ int win(int *a) {
 			c[n]++;
 		}
 
-		if (c[0] == 4) return 50; // five of a kind
-		SWAPIF(c[1], c[0]); // note: reverse
-		if (c[0] == 3) return 15; // four of a kind
-		if (c[0] + c[1] == 4) return 8; // full house
-		SWAPIF(c[2], c[1]); // note: reverse
-		if (c[0] == 2 || c[1] == 2) return 2; // set or two pair
+		if(c[0] == 4) return 50; // five of a kind
+		if(c[0] == 3 || c[1] == 3) return 15; // four of a kind
+		if(c[2] == 0) return 8; // full house (has to be 2+2)
+        if(c[0] == 2 || c[1] == 2 || c[2] == 2) return 2;
 
-		if (n == 3 && (h[3] - h[0] <= 4 || (h[2] <= 3 && h[3] == 12)))
+		if(h[3] - h[0] <= 4 || (h[2] <= 3 && h[3] == 12))
 			return flush ? 30 : 3; // straight (flush)
     } else {
 		flush = flush && (h[0] & 3) == (h[4] & 3);
@@ -187,11 +185,8 @@ int win(int *a) {
 			c[n]++;
 		}
 
-		SWAPIF(c[1], c[0]); // note: reverse
-		if (c[0] == 4) return 15; // Four of a kind
-		SWAPIF(c[2], c[1]); // note: reverse
-		if (c[0] + c[1] == 5) return 8; // Full house
-		if (c[0] + c[1] == 4) return 2; //(c[0]*c[1]==4) ? 1 : 2; // Set or two pair
+        if(c[2]==0) return (c[0]==4 || c[1]==4) ? 15 : 8;
+        if(c[3]==0) return 2;
 
 		if (n == 4 && (h[4] - h[0] == 4 || (h[3] == 3 && h[4] == 12)))
 			return flush ? 30 : 3; // Straight (flush)
@@ -199,20 +194,4 @@ int win(int *a) {
 	}
 
 	return flush ? 4 : 0;
-}
-
-map<int,int> precalc;
-
-void precalc_win() {
-    int h[5]={0,1,2,3,4};
-    do {
-        precalc[NUM_HAND(h)] = win(h);
-    } while(next_combi(h, 5, 52));
-}
-
-int quickwin(int *a) {
-    int h[5];
-    memcpy(h, a, 5*sizeof(int));
-    sort5(h);
-    return precalc[NUM_HAND(h)];
 }
