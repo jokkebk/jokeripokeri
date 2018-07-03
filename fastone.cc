@@ -130,7 +130,7 @@ int optimal_selection(int *h, double *p) {
 		// no single selection optimums with a pair or better in hand
 		if(ONE_BIT(s) && paired) continue; 
         // With joker, you have to select the joker, not toss it
-        if(ONE_BIT(s) && h[4]==52 && s<16) continue;
+        if(h[4]==52 && s<16) continue;
 
         int S=0, I=0;
 
