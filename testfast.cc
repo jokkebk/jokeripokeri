@@ -115,7 +115,11 @@ map<int,int> count_wins(int *h, int s) {
 // 2=full house
 // 3=quads
 // 4=five of a kind
-int win_pairs(int *h) {
+int win_pairs(int *a) {
+    int h[5];
+    memcpy(h, a, 5*sizeof(int));
+    sort5(h);
+
 	int c[5] = { 1,0,0,0,0 }, n = 0;
 
     for (int i = 1; i < 5; i++) {
@@ -140,9 +144,87 @@ int win_pairs(int *h) {
     return 2;
 }
 
+// Calculate characteristic mask for a hand. For two hands and
+// selections with same mask, they should yield same amount of pairs etc.
+// Hand needs to be sorted.
+int pair_mask(int *h, int s, bool debug=false) {
+	int numsel[5] = { 0,0,0,0,0 }, n = 0;
+    int jokersel = (h[4]==52) ? ((s&16) ? 3 : 1) : 0;
+
+    numsel[0] = 8 + (s&1); // hi3:low3 = count(3):selected(3)
+
+    for (int i = 1; i < 5; i++) {
+        if((h[i]>>2) != (h[i-1]>>2)) n++;
+        numsel[n] += 8 + ((s>>i)&1);
+    }
+
+    // possible counts: 41 14 32 23 311 131 113 221 212 122 2111 1211 1121 1112 11111
+
+    // if n==4 counts are 11111
+    // n==3 is 2111 1211 1121 1112
+    if(n==3 && numsel[2] < numsel[3]) swap(numsel[2], numsel[3]);
+    if(n>1 && numsel[1] < numsel[2]) swap(numsel[1], numsel[2]);
+    if(numsel[0] < numsel[1]) swap(numsel[0], numsel[1]);
+    // rinse and repeat to get 122 into 221
+    if(n>1 && numsel[1] < numsel[2]) swap(numsel[1], numsel[2]);
+
+    if(debug) {
+        cout << hand_string(h, 5, s) << " has " << n+1 << " different values:" << endl;
+        for(int i=0; i<=n; i++) cout << bitset<6>(numsel[i]) << endl;
+    }
+
+    if((numsel[1]>>3)>1)
+        return jokersel + // 2 bits for joker (1) and selected (2)
+            ((numsel[0])<<2) + // 6 bits for mode card and select count
+            ((numsel[1])<<8) + // 6 bits for mode card and select count
+            (((numsel[2]&7)+(numsel[3]&7)+(numsel[4]&7))<<14); // selected 1s
+    else
+        return jokersel + // 2 bits for joker (1) and selected (2)
+            ((numsel[0])<<2) + // 6 bits for mode card and select count
+            ((8+(numsel[1]&7)+(numsel[2]&7)+(numsel[3]&7)+(numsel[4]&7))<<8) + 0xFF0000;
+}
+
+map<int,long long> cache_pair;
+map<int,int> cache_num;
+map<int,int> cache_sel;
+
+int maxx[5] = {0, 0, 0, 0, 0};
+
 // Count different types of pairs etc. resulting from a selection
 // int cnt[5] = {none, two pair+set, full house, quads, five of a kind}
 void count_pair_wins(int *h, int s, int *cnt) {
+    int pm = pair_mask(h, s);
+
+    if(cache_pair.count(pm)) {
+        long long p = cache_pair[pm];
+        cnt[1] = (p >> 0) & 0xFFFF;
+        cnt[2] = (p >> 16) & 0xFFFF;
+        cnt[3] = (p >> 32) & 0xFFFF;
+        cnt[4] = (p >> 48);
+        return;
+        //int cnt2[5];
+        /*for(int i=1; i<5; i++) {
+            if(cnt[i] != cnt2[i]) {
+                cout << "Cache miss " << hand_string(h, 5, s) << ": cnt[" << i << "] is " << cnt[i] << " and " << cnt2[i] << endl;
+                cout << hand_num(h) << endl;
+                int h2[5];
+                num_hand(h2, cache_num[pm]);
+                cout << "Previous hand " << hand_string(h2, 5, cache_sel[pm]) << endl;
+                cout << bitset<16>(pair_mask(h, s, true)) << " vs " << bitset<16>(pair_mask(h2, cache_sel[pm], true)) << endl;
+                map<int,int> w = count_wins(h, s);
+                map<int,int> w2 = count_wins(h2, cache_sel[pm]);
+                for(auto p : w) {
+                    //if(w2.count(p.first) && p.second != w2[p.first]) {
+                        cout << p.first << ": " << p.second << " vs. " << w2[p.first] << endl;
+                        //exit(1);
+                    //}
+                }
+                exit(1);
+            }
+        }
+        */
+    }
+
     int left[48];
 
 	int c, lp, hp;
@@ -157,17 +239,27 @@ void count_pair_wins(int *h, int s, int *cnt) {
         for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
         int w2 = win_pairs(sel);
         cnt[w2]++;
-        //int w = win(sel);
-        //if(w==2) w=1;
-        //else if(w==8) w=2;
-        //else if(w==15) w=3;
-        //else if(w==50) w=4;
-        //else w=0;
-        //if(w != w2) {
-        //    cout << "FAIL with " << hand_string(sel) << ": " << w << " vs. " << w2 << endl;
-        //    exit(1);
-        //}
+        int w = win(sel);
+        if(w==2) w=1;
+        else if(w==8) w=2;
+        else if(w==15) w=3;
+        else if(w==50) w=4;
+        else w=0;
+        if(w != w2) {
+            cout << "FAIL with " << hand_string(sel) << ": " << w << " vs. " << w2 << endl;
+            exit(1);
+        }
     } while(next_combi(ci, 5-n, 53-5-1));
+
+    for(int i=0; i<5; i++) maxx[i] = max(maxx[i], cnt[i]);
+
+    cache_num[pm] = hand_num(h);
+    cache_sel[pm] = s;
+    cache_pair[pm] =
+        ((long long)cnt[1] & 0xFFFF) +
+        ((long long)cnt[2] << 16) +
+        ((long long)cnt[3] << 32) +
+        ((long long)cnt[4] << 48);
 }
 
 // Count possible flushes -- includes straights
@@ -306,119 +398,94 @@ void gen_base_pairs(function<void(int *)> f, bool joker) {
     }
 }
 
-// Calculate characteristic mask for a hand. For two hands and
-// selections with same mask, they should yield same amount of pairs etc.
-// Hand needs to be sorted.
-int pair_mask(int *h, int sel, bool debug=false) {
-	int numsel[5] = { 0,0,0,0,0 }, n = 0;
-    int jokersel = (h[4]==52) ? ((sel&16) ? 3 : 1) : 0;
-
-    numsel[0] = 8 + (sel&1); // hi3:low3 = count(3):selected(3)
-
-    for (int i = 1; i < 5; i++) {
-        if((h[i]>>2) != (h[i-1]>>2)) n++;
-        numsel[n] += 8 + ((sel>>i)&1);
-    }
-
-    // possible counts: 41 14 32 23 311 131 113 221 212 122 2111 1211 1121 1112 11111
-
-    // if n==4 counts are 11111
-    if(n==3 && numsel[2] < numsel[3]) swap(numsel[2], numsel[3]);
-    if(n>1 && numsel[1] < numsel[2]) swap(numsel[1], numsel[2]);
-    if(numsel[0] < numsel[1]) swap(numsel[0], numsel[1]);
-
-    if(debug) {
-        cout << n << " selected:" << endl;
-        for(int i=0; i<=n; i++) cout << bitset<6>(numsel[i]) << endl;
-    }
-
-    if((numsel[1]>>3)>1)
-        return jokersel + // 2 bits for joker (1) and selected (2)
-            ((numsel[0])<<2) + // 6 bits for mode card and select count
-            ((numsel[1])<<8) + // 6 bits for mode card and select count
-            (((numsel[2]&7)+(numsel[3]&7)+(numsel[4]&7))<<14); // selected 1s
-    else
-        return jokersel + // 2 bits for joker (1) and selected (2)
-            ((numsel[0])<<2) + // 6 bits for mode card and select count
-            ((8+(numsel[1]&7)+(numsel[2]&7)+(numsel[3]&7)+(numsel[4]&7))<<8);
-}
-
 int main(int argc, char *argv[]) {
     clock_t start, end;
     double duration;
-    int h[5] = {1, 6, 10, 14, 52};
+    int h[5];
     vector<int> bp;
     map<int,int> cnt;
 
+    //start = clock();
+    //gen_base_pairs([&](int *h) { bp.push_back(hand_num(h)); }, true);
+    //for(int n : bp) {
+    //    num_hand(h, n);
+    //    cout << hand_string(h) << endl;
+    //    for(int s = 1; s<2; s++) {
+    //        int cnt1[5] = {0, 0, 0, 0, 0};
+    //        map<int,int> w = count_wins(h, s);
+    //        int cnt2[5] = {0, w[2], w[8], w[15], w[50]};
+
+    //        count_pair_wins(h, s, cnt1);
+
+    //        for(int i=0; i<5; i++) {
+    //            cout << "  " << cnt1[i] << " vs " << cnt2[i] << endl;
+    //        }
+    //        //int pm = pair_mask(h, s);
+    //        //cnt[pm]++;
+    //    }
+    //}
+    //end = clock();
+    //duration = (double)(end-start)/CLOCKS_PER_SEC;
+    //cout << cnt.size() << " in " << duration << "s" << endl;
+
+    vector<pair<int,int>> ns(1000);
+    srand(time(NULL));
+    for(auto & p : ns) {
+        num_hand(h, (rand() * 65536 + rand()) % C(53,5));
+        norm_hand(h);
+        p.first = hand_num(h);
+        p.second = rand()%31+1;
+    }
+
+    long sum = 0;
+
+        /*for(auto p : w) 
+            if(w2.count(p.first) && p.second != w2[p.first]) {
+                cout << "Testing " << hand_string(h, 5, s) << " (" << n << "): " << endl;
+                cout << p.first << ": " << p.second << " vs. " << w2[p.first] << endl;
+                exit(1);
+            }*/
+
     start = clock();
-    gen_base_pairs([&](int *h) { bp.push_back(hand_num(h)); }, true);
-    for(int n : bp) {
+    for(auto p : ns) {
+        int n = p.first, s = p.second;
         num_hand(h, n);
-        cout << hand_string(h) << endl;
-        for(int s = 1; s<2; s++) {
-            int cnt1[5] = {0, 0, 0, 0, 0};
-            map<int,int> w = count_wins(h, s);
-            int cnt2[5] = {0, w[2], w[8], w[15], w[50]};
-
-            count_pair_wins(h, s, cnt1);
-
-            for(int i=0; i<5; i++) {
-                cout << "  " << cnt1[i] << " vs " << cnt2[i] << endl;
-            }
-            //int pm = pair_mask(h, s);
-            //cnt[pm]++;
+        map<int,int> w;
+        if(true) { //countOnes5b(s) < 4) {
+            int cnt[5] = {0, 0, 0, 0, 0};
+            count_pair_wins(h, s, cnt);
+            w[30] = count_30sel(h, s);
+            w[4] = count_4sel(h, s) - w[30];
+            w[3] = count_3sel(h, s) - w[30];
+            w[2] = cnt[1];
+            w[8] = cnt[2];
+            w[15] = cnt[3];
+            w[50] = cnt[4];
+        } else {
+            w = count_wins(h, s);
         }
+        for(auto p : w) sum += p.first * p.second;
     }
     end = clock();
     duration = (double)(end-start)/CLOCKS_PER_SEC;
-    cout << cnt.size() << " in " << duration << "s" << endl;
+    cout << ns.size() << " in " << duration << "s: " << sum << endl;
 
-    //for(int i=0; i<5; i++) h[i] = i;
-    //int I = 0;
-    //start = clock();
-    //do {
-	//	if(!SEMINORMAL(h)) continue;
-    //    for(int s = 1; s<32; s++) {
-    //        int pm = pair_mask(h, s);
-    //        if(!cnt.count(pm)) {
-    //            cout << hand_string(h, 5, s) << endl;
-    //            cout << bitset<16>(pm) << " = " << pm << endl;
-    //            pair_mask(h, s, true);
-    //        }
-    //        cnt[pair_mask(h, s)]++;
-    //    }
-    //    I++;
-    //} while(next_combi(h, 5, 53-1));
-    //end = clock();
-    //duration = (double)(end-start)/CLOCKS_PER_SEC;
-    //cout << I << " with " << cnt.size() << " in " << duration << "s" << endl;
-
-    return 0;
-
-    vector<int> hnum(100);
-    srand(time(NULL));
-    for(auto & n : hnum) {
-        num_hand(h, rand() % C(53,5));
-        norm_hand(h);
-        n = hand_num(h);
-    }
-
-    //vector<int> hnum(1);
-    //norm_hand(h);
-    //hnum[0] = hand_num(h);
-
-    for(auto n : hnum) {
+    sum = 0;
+    start = clock();
+    for(auto p : ns) {
+        int n = p.first, s = p.second;
         num_hand(h, n);
-        for(int s = 1; s<32; s++) {
-            map<int,int> w = count_wins(h, s);
-            int c1 = w[3] + w[30];
-            int c2 = count_3sel(h, s);
-
-            if(c1 != c2)
-                cout << "Testing " << hand_string(h, 5, s) << ": " <<
-                    c1 << " vs " << c2 << " straights" << endl;
-        }
+        map<int,int> w = count_wins(h, s);
+        for(auto p : w) sum += p.first * p.second;
     }
+    end = clock();
+    duration = (double)(end-start)/CLOCKS_PER_SEC;
+    cout << ns.size() << " in " << duration << "s: " << sum << endl;
+
+    cout << "C(48, 4) = " << C(48, 4) << endl;
+    cout << cache_pair.size() << " unique pair thingies" << endl;
+
+    for(int i=1; i<5; i++) cout << maxx[i] << endl;
     /*
     for(int ones = 1; ones <= 5; ones++) {
         start = clock();
