@@ -195,3 +195,45 @@ int win(int *a) {
 
 	return flush ? 4 : 0;
 }
+
+// Win with mixed cards, no flush
+int win_mixed(int *a) {
+    int h[5];
+    memcpy(h, a, 5*sizeof(int));
+    sort5(h);
+
+	int c[5] = { 1,0,0,0,0 }, n = 0;
+
+    if(h[4]==52) { // joker
+		h[0] >>= 2;
+		for (int i = 1; i < 4; i++) {
+			h[i] >>= 2;
+			if (h[i] != h[i - 1]) n++;
+			c[n]++;
+		}
+
+		if(c[0] == 4) return 50; // five of a kind
+		if(c[0] == 3 || c[1] == 3) return 15; // four of a kind
+		if(c[2] == 0) return 8; // full house (has to be 2+2)
+        if(c[0] == 2 || c[1] == 2 || c[2] == 2) return 2;
+
+		if(h[3] - h[0] <= 4 || (h[2] <= 3 && h[3] == 12))
+			return 3; // straight (no flush)
+    } else {
+		h[0] >>= 2;
+		for (int i = 1; i < 5; i++) {
+			h[i] >>= 2;
+			if (h[i] != h[i - 1]) n++;
+			c[n]++;
+		}
+
+        if(c[2]==0) return (c[0]==4 || c[1]==4) ? 15 : 8;
+        if(c[3]==0) return 2;
+
+		if (n == 4 && (h[4] - h[0] == 4 || (h[3] == 3 && h[4] == 12)))
+			return 3; // Straight (no flush)
+
+	}
+
+	return 0;
+}

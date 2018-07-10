@@ -53,8 +53,7 @@ bool is_paired(int *h);
 int C(int n, int k);
 
 int win(int *a);
-void precalc_win();
-int quickwin(int *a);
+int win_mixed(int *a);
 
 bool next_combi(int *c, int n, int max);
 

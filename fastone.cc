@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int count_30s(int *h, int idx, bool debug = false) {
+int count_30s(int *h, int idx) {
     int cmask = 0, omask = 0, val = h[idx]/4, suit = h[idx]&3, cnt = 0;
 
     for(int i=0, j=1; i<5; i++, j*=2) {
@@ -61,7 +61,7 @@ int count_30s(int *h, int idx, bool debug = false) {
     return cnt;
 }
 
-int count_3s(int *h, int idx, bool debug = false) {
+int count_3s(int *h, int idx) {
     int mask = 0, val = h[idx]/4, cnt = 0;
 
     for(int i=0, j=1; i<5; i++, j*=2)
@@ -102,7 +102,7 @@ int count_3s(int *h, int idx, bool debug = false) {
     return cnt;
 }
 
-int count_4s(int *h, int idx, bool debug = false) {
+int count_4s(int *h, int idx) {
     int suited = 14; // 13 suited cards + joker
 
     for(int i=0; i<5; i++)
