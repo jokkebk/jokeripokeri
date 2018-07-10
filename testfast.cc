@@ -333,7 +333,7 @@ int count_30sel(int *h, int sel) {
 
 // Count possible straights -- includes straight flushes
 int count_3sel(int *h, int sel) {
-    int indeck[14] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1};
+    int indeck[14] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
     int has=0;
 
     for(int i=0; i<5; i++) {
@@ -341,15 +341,17 @@ int count_3sel(int *h, int sel) {
         int m = 1 << v;
         if(sel & (1<<i)) {
             if(has & m) return 0; // paired selection
-            has |= m;
-        } else {
+            //if(v<13)
+                has |= m;
+        } else if(v<13) {
             indeck[v]--;
         }
     }
 
     int cnt = 0;
+    int dojoker = (h[4]!=52 || (h[4]==52 && (sel&16))) ? 5 : 1;
 
-    for(int joker = 0; joker < 5; joker++) {
+    for(int joker = 0; joker < dojoker; joker++) {
         int m0 = joker ? 0x2000 : 0;
         int m1 = 31 - (joker ? (1<<joker) : 0);
         int max = joker==4 ? 11 : 10; // include JQKA?
@@ -360,7 +362,13 @@ int count_3sel(int *h, int sel) {
             int left = m - has, p = 1;
 
             // Wasteful, but who cares?
-            for(int v=0; left; v++, left>>=1) if(left & 1) p *= indeck[v];
+            left &= 0x1FFF; // turn off joker, it's one in any case
+            int v=0;
+            if(i) {
+                v=i-1;
+                left>>=v;
+            }
+            for(; left; v++, left>>=1) if(left & 1) p *= indeck[v];
 
             cnt += p;
         }
