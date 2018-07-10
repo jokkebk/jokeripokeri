@@ -185,10 +185,8 @@ int pair_mask(int *h, int s, bool debug=false) {
 }
 
 map<int,long long> cache_pair;
-map<int,int> cache_num;
-map<int,int> cache_sel;
-
-int maxx[5] = {0, 0, 0, 0, 0};
+//map<int,int> cache_num;
+//map<int,int> cache_sel;
 
 // Count different types of pairs etc. resulting from a selection
 // int cnt[5] = {none, two pair+set, full house, quads, five of a kind}
@@ -239,22 +237,18 @@ void count_pair_wins(int *h, int s, int *cnt) {
         for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
         int w2 = win_pairs(sel);
         cnt[w2]++;
-        int w = win(sel);
-        if(w==2) w=1;
-        else if(w==8) w=2;
-        else if(w==15) w=3;
-        else if(w==50) w=4;
-        else w=0;
-        if(w != w2) {
-            cout << "FAIL with " << hand_string(sel) << ": " << w << " vs. " << w2 << endl;
-            exit(1);
-        }
+        //int w = win(sel);
+        //if(w==2) w=1;
+        //else if(w==8) w=2;
+        //else if(w==15) w=3;
+        //else if(w==50) w=4;
+        //else w=0;
+        //if(w != w2) {
+        //    cout << "FAIL with " << hand_string(sel) << ": " << w << " vs. " << w2 << endl;
+        //    exit(1);
+        //}
     } while(next_combi(ci, 5-n, 53-5-1));
 
-    for(int i=0; i<5; i++) maxx[i] = max(maxx[i], cnt[i]);
-
-    cache_num[pm] = hand_num(h);
-    cache_sel[pm] = s;
     cache_pair[pm] =
         ((long long)cnt[1] & 0xFFFF) +
         ((long long)cnt[2] << 16) +
@@ -366,9 +360,7 @@ int count_3sel(int *h, int sel) {
             int left = m - has, p = 1;
 
             // Wasteful, but who cares?
-            for(int v=0; v<14; v++)
-                if(left & (1<<v))
-                    p *= indeck[v];
+            for(int v=0; left; v++, left>>=1) if(left & 1) p *= indeck[v];
 
             cnt += p;
         }
@@ -428,16 +420,17 @@ int main(int argc, char *argv[]) {
     //duration = (double)(end-start)/CLOCKS_PER_SEC;
     //cout << cnt.size() << " in " << duration << "s" << endl;
 
-    vector<pair<int,int>> ns(1000);
-    srand(time(NULL));
-    for(auto & p : ns) {
-        num_hand(h, (rand() * 65536 + rand()) % C(53,5));
-        norm_hand(h);
-        p.first = hand_num(h);
-        p.second = rand()%31+1;
-    }
+    set<int> hset = gen_normal_hand_nums();
+    vector<int> hnum(hset.begin(), hset.end());
+    //vector<int> hnum(10000);
+    //srand(time(NULL));
+    //for(int & n : hnum) {
+    //    num_hand(h, (rand() * 65536 + rand()) % C(53,5));
+    //    norm_hand(h);
+    //    n = hand_num(h);
+    //}
 
-    long sum = 0;
+    long long sum = 0;
 
         /*for(auto p : w) 
             if(w2.count(p.first) && p.second != w2[p.first]) {
@@ -447,45 +440,38 @@ int main(int argc, char *argv[]) {
             }*/
 
     start = clock();
-    for(auto p : ns) {
-        int n = p.first, s = p.second;
+    for(int n : hnum) {
         num_hand(h, n);
-        map<int,int> w;
-        if(true) { //countOnes5b(s) < 4) {
+
+        for(int s=1; s<32; s++) {
             int cnt[5] = {0, 0, 0, 0, 0};
             count_pair_wins(h, s, cnt);
-            w[30] = count_30sel(h, s);
-            w[4] = count_4sel(h, s) - w[30];
-            w[3] = count_3sel(h, s) - w[30];
-            w[2] = cnt[1];
-            w[8] = cnt[2];
-            w[15] = cnt[3];
-            w[50] = cnt[4];
-        } else {
-            w = count_wins(h, s);
+            sum += cnt[1] * 2 + cnt[2] * 8 + cnt[3] * 15 + cnt[4] * 50;
+            int c30s = count_30sel(h, s);
+            sum += 30 * c30s;
+            sum += 4 * (count_4sel(h, s) - c30s);
+            sum += 3 * (count_3sel(h, s) - c30s);
         }
-        for(auto p : w) sum += p.first * p.second;
     }
     end = clock();
     duration = (double)(end-start)/CLOCKS_PER_SEC;
-    cout << ns.size() << " in " << duration << "s: " << sum << endl;
+    cout << hnum.size() << " in " << duration << "s: " << sum << endl;
 
+    return 0;
     sum = 0;
     start = clock();
-    for(auto p : ns) {
-        int n = p.first, s = p.second;
-        num_hand(h, n);
-        map<int,int> w = count_wins(h, s);
-        for(auto p : w) sum += p.first * p.second;
+    for(int n : hnum) {
+        for(int s=1; s<32; s++) {
+            num_hand(h, n);
+            map<int,int> w = count_wins(h, s);
+            for(auto p : w) sum += p.first * p.second;
+        }
     }
     end = clock();
     duration = (double)(end-start)/CLOCKS_PER_SEC;
-    cout << ns.size() << " in " << duration << "s: " << sum << endl;
+    cout << hnum.size() << " in " << duration << "s: " << sum << endl;
 
-    cout << "C(48, 4) = " << C(48, 4) << endl;
     cout << cache_pair.size() << " unique pair thingies" << endl;
-
-    for(int i=1; i<5; i++) cout << maxx[i] << endl;
     /*
     for(int ones = 1; ones <= 5; ones++) {
         start = clock();
