@@ -13,5 +13,6 @@ void gen_flushes(function<void(int *)> f);
 void gen_straights(function<void(int *)> f);
 void gen_sets(function<void(int *)> f);
 void gen_two_pairs(function<void(int *)> f);
+void gen_base_pairs(function<void(int *)> f, bool joker=true);
 
 #endif

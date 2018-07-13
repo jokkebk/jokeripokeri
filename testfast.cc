@@ -18,76 +18,6 @@
 
 using namespace std;
 
-inline int countOnes5b(int s) { // it's fast!
-    s = (s&(1+4+16)) + ((s&(2+8))>>1);
-    return (s>>4) + ((s>>2)&3) + (s&3);
-}
-
-// Find optimal selection for a *normalized* hand
-int optimal_selection_test(int *h, double *p, int ones) {
-    int left[48];
-	int ansS = 0;
-	double ansP = 0.0;
-
-	int c, lp, hp;
-    for(c=0, lp=0, hp=0; c<53; c++)
-        if(hp < 5 && h[hp] == c) hp++; else left[lp++] = c;
-
-    bool paired = is_paired(h);
-
-    for(int s=1; s<32; s++) {
-        if(countOnes5b(s) != ones) continue;
-		if(ONE_BIT(s) && paired) continue; 
-        if(h[4]==52 && s<16) continue;
-
-        int S=0, I=0;
-
-        if(ONE_BIT(s) && !paired && h[4] != 52) { // use fast counting
-            int idx=0;
-            while(s>>idx) idx++;
-            idx--;
-            int c50s = 1, c15s = 220, c8s = 468, c2s = 18046;
-            int c30s = count_30s(h, idx); // straight flushes
-            int c3s = count_3s(h, idx) - c30s; // straights, don't double count
-            int c4s = count_4s(h, idx) - c30s; // flushes, don't double count
-
-            S = 50 * c50s + 30 * c30s + 15 * c15s + 8 * c8s + 4 * c4s + 3 * c3s + 2 * c2s;
-            I = C(48, 4);
-        } else {
-            int sel[5], ci[4] = {0,1,2,3}, n=0;
-            bool suited = true;
-            for(int j=0; j<5; j++) if((s>>j)&1) {
-                sel[n++] = h[j];
-                if((sel[n-1]&3) != (sel[0]&3)) suited = false;
-            }
-
-            if(suited) {
-                do {
-                    for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
-                    S+=win(sel);
-                    I++;
-                } while(next_combi(ci, 5-n, 53-5-1));
-            } else {
-                do {
-                    for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
-                    S+=win_mixed(sel);
-                    I++;
-                } while(next_combi(ci, 5-n, 53-5-1));
-            }
-        }
-
-        double p = (double)S/I;
-
-        if(p > ansP) {
-            ansP = p;
-            ansS = s;
-        }
-    }
-
-	if (p) *p = ansP;
-	return ansS;
-}
-
 map<int,int> count_wins(int *h, int s) {
     map<int,int> cnt;
 
@@ -235,14 +165,10 @@ void count_pair_wins(int *h, int s, int *cnt) {
 
     do {
         for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
-        int w2 = win_pairs(sel);
-        cnt[w2]++;
+        cnt[win_pairs(sel)]++;
+        //int w2 = win_pairs(sel);
         //int w = win(sel);
-        //if(w==2) w=1;
-        //else if(w==8) w=2;
-        //else if(w==15) w=3;
-        //else if(w==50) w=4;
-        //else w=0;
+        //if(w==2) w=1; else if(w==8) w=2; else if(w==15) w=3; else if(w==50) w=4; else w=0;
         //if(w != w2) {
         //    cout << "FAIL with " << hand_string(sel) << ": " << w << " vs. " << w2 << endl;
         //    exit(1);
@@ -341,7 +267,7 @@ int count_3sel(int *h, int sel) {
         int m = 1 << v;
         if(sel & (1<<i)) {
             if(has & m) return 0; // paired selection
-            //if(v<13)
+            if(v<13)
                 has |= m;
         } else if(v<13) {
             indeck[v]--;
@@ -349,10 +275,13 @@ int count_3sel(int *h, int sel) {
     }
 
     int cnt = 0;
-    int dojoker = (h[4]!=52 || (h[4]==52 && (sel&16))) ? 5 : 1;
+    bool joker = h[4]==52;
+    bool jsel = joker && (sel&16);
+    int dojoker = (!joker || jsel) ? 5 : 1;
+    int onlyjoker = (joker && jsel) ? 1 : 0;
 
-    for(int joker = 0; joker < dojoker; joker++) {
-        int m0 = joker ? 0x2000 : 0;
+    for(int joker = onlyjoker; joker < dojoker; joker++) {
+        int m0 = 0; //joker ? 0x2000 : 0;
         int m1 = 31 - (joker ? (1<<joker) : 0);
         int max = joker==4 ? 11 : 10; // include JQKA?
         for(int i=0; i<max; i++) {
@@ -377,25 +306,48 @@ int count_3sel(int *h, int sel) {
     return cnt;
 }
 
-// Generate base cases for different hands yielding different amount of
-// paired hands (five, four, three of a kind, full house, two pairs)
-// Suits don't matter, nor do values, only relative numbers of values.
-// Still, we return suits to support hand enumeration
-void gen_base_pairs(function<void(int *)> f, bool joker) {
-    int h[5];
+long long sum = 0;
 
-    for(int top=1; top<=4; top++) {
-        for(int i=0; i<top; i++) h[i] = i;
-        for(int sec=1; sec <= top && top+sec <= 5; sec++) {
-            for(int i=top; i<top+sec; i++) h[i] = 4 + (i-top);
-            for(int i=top+sec; i<5; i++) h[i] = 8 + (i-top-sec)*4;
-            f(h);
-            if(joker && !(top==3 && sec==2)) { // 22233 and 22234
-                h[4]=52;
-                f(h);
-            }
+// Find optimal selection for a *normalized* hand
+int optimal_selection2(int *h, double *p) {
+	int ansS = 0;
+	double ansP = 0.0;
+
+    bool paired = is_paired(h);
+
+    for(int s=1; s<32; s++) {
+		// no single selection optimums with a pair or better in hand
+		if(ONE_BIT(s) && paired) continue; 
+        // With joker, you have to select the joker, not toss it
+        if(h[4]==52 && s<16) continue;
+
+        int S=0, I=0;
+
+        if(ONE_BIT(s) && !paired && h[4] != 52) { // use fast counting
+            S = 2 * 18046 + 8 * 468 + 15 * 220 + 1 * 50;
+        } else {
+            int cnt[5] = {0, 0, 0, 0, 0};
+            count_pair_wins(h, s, cnt);
+            S = cnt[1] * 2 + cnt[2] * 8 + cnt[3] * 15 + cnt[4] * 50;
+        }
+        int c30s = count_30sel(h, s);
+        S += 30 * c30s;
+        S += 4 * (count_4sel(h, s) - c30s);
+        S += 3 * (count_3sel(h, s) - c30s);
+        I = C(48, 5 - countOnes5b(s));
+
+        sum += S;
+
+        double p = (double)S/I;
+
+        if(p > ansP) {
+            ansP = p;
+            ansS = s;
         }
     }
+
+	if (p) *p = ansP;
+	return ansS;
 }
 
 int main(int argc, char *argv[]) {
@@ -429,7 +381,9 @@ int main(int argc, char *argv[]) {
     //cout << cnt.size() << " in " << duration << "s" << endl;
 
     set<int> hset = gen_normal_hand_nums();
-    vector<int> hnum(hset.begin(), hset.end());
+    
+    //vector<int> hnum(hset.begin(), hset.end());
+    //hnum.erase(hnum.begin()+1000, hnum.end());
     //vector<int> hnum(10000);
     //srand(time(NULL));
     //for(int & n : hnum) {
@@ -438,48 +392,31 @@ int main(int argc, char *argv[]) {
     //    n = hand_num(h);
     //}
 
-    long long sum = 0;
+    FILE * out = NULL;
+    if(argc > 1) {
+        cout << "Write to " << argv[1] << endl;
+        out = fopen(argv[1], "wt");
+    }
 
-        /*for(auto p : w) 
-            if(w2.count(p.first) && p.second != w2[p.first]) {
-                cout << "Testing " << hand_string(h, 5, s) << " (" << n << "): " << endl;
-                cout << p.first << ": " << p.second << " vs. " << w2[p.first] << endl;
-                exit(1);
-            }*/
+    double sum = 0.0;
 
     start = clock();
-    for(int n : hnum) {
+    for(int n : hset) {
         num_hand(h, n);
+        
+        int ansS;
+        double ansP;
 
-        for(int s=1; s<32; s++) {
-            int cnt[5] = {0, 0, 0, 0, 0};
-            count_pair_wins(h, s, cnt);
-            sum += cnt[1] * 2 + cnt[2] * 8 + cnt[3] * 15 + cnt[4] * 50;
-            int c30s = count_30sel(h, s);
-            sum += 30 * c30s;
-            sum += 4 * (count_4sel(h, s) - c30s);
-            sum += 3 * (count_3sel(h, s) - c30s);
-        }
+        ansS = optimal_selection2(h, &ansP);
+        sum += ansP;
+
+        if(out != NULL) fprintf(out, "%d %d %8.5f\n", n, ansS, ansP);
     }
     end = clock();
     duration = (double)(end-start)/CLOCKS_PER_SEC;
-    cout << hnum.size() << " in " << duration << "s: " << sum << endl;
+    cout << hset.size() << " in " << duration << "s: " << sum << endl;
 
-    return 0;
-    sum = 0;
-    start = clock();
-    for(int n : hnum) {
-        for(int s=1; s<32; s++) {
-            num_hand(h, n);
-            map<int,int> w = count_wins(h, s);
-            for(auto p : w) sum += p.first * p.second;
-        }
-    }
-    end = clock();
-    duration = (double)(end-start)/CLOCKS_PER_SEC;
-    cout << hnum.size() << " in " << duration << "s: " << sum << endl;
-
-    cout << cache_pair.size() << " unique pair thingies" << endl;
+    if(out) fclose(out);
     /*
     for(int ones = 1; ones <= 5; ones++) {
         start = clock();

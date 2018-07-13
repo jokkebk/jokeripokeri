@@ -8,6 +8,10 @@
 #define SEMINORMAL(h) (((h)[0] & 3)==0 && (((h)[1]&3)<2) && (((h)[2]&3)<3))
 #define ONE_BIT(v) (!((v) & ((v)-1)))
 
+inline int countOnes5b(int s) { // it's fast!
+    s = (s&(1+4+16)) + ((s&(2+8))>>1);
+    return (s>>4) + ((s>>2)&3) + (s&3);
+}
 
 inline void sort5(int *a) {
     SWAPIF(a[1], a[2]);
@@ -42,6 +46,7 @@ std::string hand_string(int *h, int n=5, int highlight=0);
 void print_hand(int *h, int n=5, int highlight=0);
 
 void norm_hand(int *h);
+bool is_normal(int *h);
 int hand_int(int *h);
 void int_hand(int *h, int hi);
 int hand_num(int *a);

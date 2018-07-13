@@ -159,3 +159,24 @@ void gen_fives(function<void(int *)> f) {
         f(h);
     }
 }
+
+// Generate base cases for different hands yielding different amount of
+// paired hands (five, four, three of a kind, full house, two pairs)
+// Suits don't matter, nor do values, only relative numbers of values.
+// Still, we return suits to support hand enumeration
+void gen_base_pairs(function<void(int *)> f, bool joker) {
+    int h[5];
+
+    for(int top=1; top<=4; top++) {
+        for(int i=0; i<top; i++) h[i] = i;
+        for(int sec=1; sec <= top && top+sec <= 5; sec++) {
+            for(int i=top; i<top+sec; i++) h[i] = 4 + (i-top);
+            for(int i=top+sec; i<5; i++) h[i] = 8 + (i-top-sec)*4;
+            f(h);
+            if(joker && !(top==3 && sec==2)) { // 22233 and 22234
+                h[4]=52;
+                f(h);
+            }
+        }
+    }
+}

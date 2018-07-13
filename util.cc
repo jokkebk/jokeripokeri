@@ -52,6 +52,21 @@ void norm_hand(int *h) {
     sort5(h);
 }
 
+// Check if hand is normalized, see comments in norm_hand() for details
+bool is_normal(int *h) {
+   for(int i=1; i<5; i++) if(h[i] < h[i-1]) return false;
+
+   int suit[4]={0,0,0,0};
+
+   for(int i=0; i<5; i++) if(h[i]!=52) suit[h[i]&3] |= 1 << (15-h[i]/4);
+   //for(int i=0; i<4; i++) cout << bitset<16>(suit[i]) << endl;
+   //cout << endl;
+   if(suit[0] < suit[1]) return false;
+   if(suit[1] < suit[2]) return false;
+   if(suit[2] < suit[3]) return false;
+   return true;
+}
+
 // Quick and dirty int conversion
 int hand_int(int *h) {
     int ret = h[0];
