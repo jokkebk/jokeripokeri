@@ -14,7 +14,6 @@
 #include <cstring>
 
 #include "util.h"
-//#include "fastone.h"
 #include "genhand.h"
 
 using namespace std;
@@ -78,7 +77,7 @@ int win_pairs(int *a) {
 // Calculate characteristic mask for a hand. For two hands and
 // selections with same mask, they should yield same amount of pairs etc.
 // Hand needs to be sorted.
-int pair_mask(int *h, int s, bool debug=false) {
+int enum_hand_pair(int *h, int s, bool debug=false) {
 	int numsel[5] = { 0,0,0,0,0 }, n = 0;
     int jokersel = (h[4]==52) ? ((s&16) ? 3 : 1) : 0;
 
@@ -120,7 +119,7 @@ map<int,long long> cache_pair;
 // Count different types of pairs etc. resulting from a selection
 // int cnt[5] = {none, two pair+set, full house, quads, five of a kind}
 void count_pair_wins(int *h, int s, int *cnt) {
-    int pm = pair_mask(h, s);
+    int pm = enum_hand_pair(h, s);
 
     if(cache_pair.count(pm)) {
         long long p = cache_pair[pm];
@@ -229,14 +228,14 @@ int count_30sel(int *h, int sel) {
 }
 
 // Count possible straights -- includes straight flushes
-int count_3sel(int *h, int sel) {
+int count_3sel(int *h, int s) {
     int has = 0, indeck[13] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
     bool joker = h[4]==52;
-
+    
     for(int i=0; i<(joker ? 4:5); i++) {
         int v = h[i]>>2;
         int m = 1 << v;
-        if(sel & (1<<i)) {
+        if(s & (1<<i)) {
             if(has & m) return 0; // paired selection
             has |= m;
         } else indeck[v]--;
@@ -245,7 +244,7 @@ int count_3sel(int *h, int sel) {
     if((has & 15) && (has & 0xF00)) return 0; // 2345 and TJQK selected
 
     int cnt = 0;
-    bool jsel = joker && (sel&16);
+    bool jsel = joker && (s&16);
     int dojoker = (!joker || jsel) ? 5 : 1;
 
     for(int j = (joker && jsel) ? 1 : 0; j < dojoker; j++) {
