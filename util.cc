@@ -119,18 +119,6 @@ void num_hand(int *h, int n) {
     }
 }
 
-// Generate all 150 891 normalized jokeripokeri hands and return as a set
-std::set<int> gen_normal_hand_nums() {
-	int h[5] = { 0, 1, 2, 3, 4 };
-	set<int> uniq;
-
-	do {
-		if (SEMINORMAL(h)) uniq.insert(hand_num_norm(h));
-	} while (next_combi(h, 5, 52)); 
-
-	return uniq;
-}
-
 bool is_paired(int *h) {
     for(int i = 0; i < 4; i++)
       if(h[i] / 4 == h[i + 1] / 4)

@@ -52,7 +52,6 @@ void int_hand(int *h, int hi);
 int hand_num(int *a);
 int hand_num_norm(int *a);
 void num_hand(int *h, int n);
-std::set<int> gen_normal_hand_nums();
 bool is_paired(int *h);
 
 int C(int n, int k);

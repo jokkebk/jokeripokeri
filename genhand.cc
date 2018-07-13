@@ -30,6 +30,15 @@ void gen_hands(function<void(int *)> f, bool joker) {
     }
 }
 
+// Generate all 150 891 normalized jokeripokeri hands
+void gen_normal_hands(function<void(int *)> f) {
+	int h[5] = { 0, 1, 2, 3, 4 };
+
+	do if(SEMINORMAL(h) && is_normal(h)) f(h);
+	while (next_combi(h, 5, 52)); 
+}
+
+
 void gen_two_pairs(function<void(int *)> f) {
     int h[5];
     for(h[0]=0; h[0]<12*4; h[0]++) { // Smaller pair & suit
