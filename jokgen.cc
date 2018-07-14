@@ -19,6 +19,7 @@
 
 #include "util.h"
 #include "fastone.h"
+#include "genhand.h"
 
 using namespace std;
 
@@ -31,12 +32,13 @@ void process(int *hnum, int n, int off, int step, double *ansP, int *ansS) {
 }
 
 int main(int argc, char *argv[]) {
-    set<int> nums = gen_normal_hand_nums();
+    set<int> nums;
     clock_t start;
     double duration;
-    vector<int> hnum(nums.begin(), nums.end());
 
-    //hnum.erase(hnum.begin()+10000, hnum.end());
+    gen_normal_hands([&](int *h) { nums.insert(hand_num(h)); });
+
+    vector<int> hnum(nums.begin(), nums.end());
 
     int *hnump = &hnum[0];
     double *ansP = new double[hnum.size()];

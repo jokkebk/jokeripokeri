@@ -1,8 +1,9 @@
-#ifndef __UTIL_H
+#pragma once
 
 #include <string>
 #include <ctime>
 #include <set>
+#include <map>
 
 #define SWAPIF(a,b) if(a>b) { a ^= b; b ^= a; a ^= b; }
 #define SEMINORMAL(h) (((h)[0] & 3)==0 && (((h)[1]&3)<2) && (((h)[2]&3)<3))
@@ -61,4 +62,4 @@ int win_mixed(int *a);
 
 bool next_combi(int *c, int n, int max);
 
-#endif
+std::map<int,int> count_wins(int *h, int s);

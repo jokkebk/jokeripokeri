@@ -6,10 +6,10 @@ all: test.exe jokeri.exe jokgen.exe test_win.exe testfast.exe
 clean:
 	$(RM) *.o *.exe
 
-testfast.exe: testfast.o util.o genhand.o
+testfast.exe: testfast.o util.o genhand.o fastany.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-jokgen.exe: jokgen.o util.o fastone.o
+jokgen.exe: jokgen.o util.o fastone.o genhand.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 test.exe: test.o util.o genhand.o

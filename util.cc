@@ -240,3 +240,25 @@ int win_mixed(int *a) {
 
 	return 0;
 }
+
+map<int,int> count_wins(int *h, int s) {
+    map<int,int> cnt;
+
+    int left[48];
+
+	int c, lp, hp;
+    for(c=0, lp=0, hp=0; c<53; c++)
+        if(hp < 5 && h[hp] == c) hp++; else left[lp++] = c;
+
+    int sel[5], ci[4] = {0,1,2,3}, n=0;
+
+    for(int j=0; j<5; j++) if((s>>j)&1) sel[n++] = h[j];
+
+    do {
+        for(int j=n; j<5; j++) sel[j] = left[ci[j-n]];
+        cnt[win(sel)]++;
+    } while(next_combi(ci, 5-n, 53-5-1));
+
+    return cnt;
+}
+
