@@ -4,6 +4,7 @@
 #include <ctime>
 #include <set>
 #include <map>
+#include <unordered_map>
 
 #define SWAPIF(a,b) if(a>b) { a ^= b; b ^= a; a ^= b; }
 #define SEMINORMAL(h) (((h)[0] & 3)==0 && (((h)[1]&3)<2) && (((h)[2]&3)<3))
@@ -36,7 +37,9 @@ inline void sort4(int *a) {
 
 inline size_t myrand() {
     time_t res = std::time(nullptr);
-    return std::hash<std::string>{}(std::string(std::asctime(std::localtime(&res))));
+    std::hash<std::string> hasher;
+    std::string s(std::asctime(std::localtime(&res)));
+    return hasher(s);
 }
 
 #define NUM_HAND(h) ((h[4]<<24)+(h[3]<<18)+(h[2]<<12)+(h[1]<<6)+h[0])

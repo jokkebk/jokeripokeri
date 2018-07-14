@@ -261,3 +261,25 @@ int optimal_selection_any(int *h, double *p) {
 	if (p) *p = ansP;
 	return ansS;
 }
+
+double average_win(int c1, int c2, int c3, int c4, int c5, int s) {
+    int h[5];
+    int S=0, I=0;
+
+    h[0] = c1;
+    h[1] = c2;
+    h[2] = c3;
+    h[3] = c4;
+    h[4] = c5;
+
+    int cnt[5] = {0, 0, 0, 0, 0};
+    count_pair_wins(h, s, cnt);
+    S = cnt[1] * 2 + cnt[2] * 8 + cnt[3] * 15 + cnt[4] * 50;
+    int c30s = count_30sel(h, s);
+    S += 30 * c30s;
+    S += 4 * (count_4sel(h, s) - c30s);
+    S += 3 * (count_3sel(h, s) - c30s);
+    I = C(48, 5 - countOnes5b(s));
+
+    return (double)S/I;
+}
