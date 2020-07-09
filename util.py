@@ -35,6 +35,9 @@ deckS = [''.join(p) for p in product(valS, 'CDHS')]+['??']
 def hand_str(h, s=0):
     return ' '.join('%s%s' % ('*' if (s&(1<<i)) else '', deckS[c]) for i,c in enumerate(h))
 
+def str_hand(s):
+    return [deckS.index(s.upper()) for s in s.strip().split()]
+
 # Return bitmask of positions with value v
 def val_mask(h, v):
     return sum(1<<i for i,c in enumerate(h) if c//4 == v)
